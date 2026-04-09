@@ -2,6 +2,7 @@ import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { messageStore } from './store';
 import type { ProxyMessage } from './types';
+import * as path from 'path';
 
 const TARGET_URL = process.env.TARGET_URL || 'https://api.deepseek.com';
 const PROXY_PORT = parseInt(process.env.PROXY_PORT || '3000', 10);
@@ -150,8 +151,9 @@ function createWebServer(): express.Application {
   const app = express();
   app.use(express.json());
 
-  // Serve static files
-  app.use(express.static('src/public'));
+  // Serve static files - resolve relative to compiled dist/ directory
+  const publicDir = path.resolve(__dirname, '..', 'src', 'public');
+  app.use(express.static(publicDir));
 
   // Get all messages
   app.get('/api/messages', (_req, res) => {
