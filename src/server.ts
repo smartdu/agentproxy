@@ -3,7 +3,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import { messageStore } from './store';
 import type { ProxyMessage } from './types';
 
-const TARGET_URL = process.env.TARGET_URL || 'https://api.openai.com';
+const TARGET_URL = process.env.TARGET_URL || 'https://api.deepseek.com';
 const PROXY_PORT = parseInt(process.env.PROXY_PORT || '3000', 10);
 const WEB_PORT = parseInt(process.env.WEB_PORT || '8080', 10);
 
