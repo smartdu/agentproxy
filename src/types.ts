@@ -2,6 +2,7 @@ export interface ProxyMessage {
   id: string;
   seq: number;
   timestamp: number;
+  updatedAt: number;
   method: string;
   url: string;
   path: string;

@@ -29,12 +29,14 @@ class MessageStore {
   private messages: Map<string, ProxyMessage> = new Map();
   private seqCounter: number = 0;
 
-  createMessage(partial: Omit<ProxyMessage, 'id' | 'timestamp' | 'seq'>): ProxyMessage {
+  createMessage(partial: Omit<ProxyMessage, 'id' | 'timestamp' | 'seq' | 'updatedAt'>): ProxyMessage {
+    const now = Date.now();
     const msg: ProxyMessage = {
       ...partial,
       id: uuidv4(),
       seq: ++this.seqCounter,
-      timestamp: Date.now(),
+      timestamp: now,
+      updatedAt: now,
     };
     this.messages.set(msg.id, msg);
     return msg;
@@ -43,7 +45,7 @@ class MessageStore {
   updateMessage(id: string, updates: Partial<ProxyMessage>): void {
     const msg = this.messages.get(id);
     if (msg) {
-      Object.assign(msg, updates);
+      Object.assign(msg, updates, { updatedAt: Date.now() });
       // Write to log file once the message is complete (duration is set)
       if (updates.duration !== undefined && updates.duration > 0) {
         appendToLogFile(msg);
@@ -68,7 +70,7 @@ class MessageStore {
   }
 
   getMessagesAfter(timestamp: number): ProxyMessage[] {
-    return this.getAllMessages().filter(m => m.timestamp > timestamp);
+    return this.getAllMessages().filter(m => m.timestamp > timestamp || m.updatedAt > timestamp);
   }
 
   getMessage(id: string): ProxyMessage | undefined {

@@ -301,7 +301,7 @@
           }
           messages = data;
           selectedId = null;
-          lastTimestamp = messages.length > 0 ? Math.max(...messages.map(m => m.timestamp)) : 0;
+          lastTimestamp = messages.length > 0 ? Math.max(...messages.map(m => Math.max(m.timestamp, m.updatedAt || 0))) : 0;
           // Auto switch to offline mode
           switchMode('offline');
           render();
@@ -318,7 +318,7 @@
       try {
         const res = await fetch(`${API_BASE}/api/messages`);
         messages = await res.json();
-        lastTimestamp = messages.length > 0 ? Math.max(...messages.map(m => m.timestamp)) : 0;
+        lastTimestamp = messages.length > 0 ? Math.max(...messages.map(m => Math.max(m.timestamp, m.updatedAt || 0))) : 0;
         render();
       } catch {
         // Server unreachable - suggest offline mode
@@ -331,8 +331,13 @@
         const res = await fetch(`${API_BASE}/api/messages/latest?after=${lastTimestamp}`);
         const newMsgs = await res.json();
         if (newMsgs.length > 0) {
-          messages = messages.concat(newMsgs);
-          lastTimestamp = Math.max(...newMsgs.map(m => m.timestamp));
+          // Merge: update existing messages, add new ones
+          const existingMap = new Map(messages.map(m => [m.id, m]));
+          for (const msg of newMsgs) {
+            existingMap.set(msg.id, msg);
+          }
+          messages = Array.from(existingMap.values());
+          lastTimestamp = Math.max(...messages.map(m => Math.max(m.timestamp, m.updatedAt || 0)));
           render();
         }
       } catch {
