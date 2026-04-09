@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { createProxyServer, createWebServer, PROXY_PORT, WEB_PORT, TARGET_URL } from './server';
 
 const proxyApp = createProxyServer();
