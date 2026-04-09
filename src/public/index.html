@@ -11,7 +11,7 @@
     /* Top bar */
     .top-bar {
       height: 56px; background: #fff; border-bottom: 1px solid #e0e0e0;
-      display: flex; align-items: center; padding: 0 20px; gap: 24px;
+      display: flex; align-items: center; padding: 0 20px; gap: 16px;
     }
     .top-bar .logo { font-size: 18px; font-weight: bold; color: #1a73e8; letter-spacing: 1px; }
     .stat-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
@@ -32,6 +32,20 @@
     .top-bar button.danger { color: #d93025; border-color: #d9302544; }
     .top-bar button.danger:hover { background: #fce8e6; }
 
+    /* Mode switch */
+    .mode-switch { display: flex; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; }
+    .mode-switch button { border: none; border-radius: 0; padding: 4px 10px; font-size: 12px; }
+    .mode-switch button + button { border-left: 1px solid #ccc; }
+    .mode-switch button.active { background: #1a73e8; color: #fff; }
+    .mode-switch button:not(.active) { background: #fff; color: #666; }
+    .mode-switch button:not(.active):hover { background: #eef4fd; }
+
+    .mode-badge {
+      font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: bold;
+    }
+    .mode-badge.live { background: #e6f4ea; color: #137333; }
+    .mode-badge.offline { background: #fef7e0; color: #b06000; }
+
     /* Main layout */
     .main { display: flex; height: calc(100% - 56px); }
 
@@ -45,6 +59,15 @@
       font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px;
       display: flex; justify-content: space-between; align-items: center;
     }
+    .left-panel .toolbar {
+      padding: 6px 14px; border-bottom: 1px solid #e0e0e0;
+      display: flex; gap: 6px;
+    }
+    .left-panel .toolbar button {
+      font-size: 11px; padding: 3px 8px; background: #fff; border: 1px solid #ccc;
+      color: #666; border-radius: 4px; cursor: pointer;
+    }
+    .left-panel .toolbar button:hover { background: #eef4fd; color: #1a73e8; border-color: #1a73e8; }
     .msg-list { flex: 1; overflow-y: auto; }
     .msg-item {
       padding: 10px 14px; border-bottom: 1px solid #f0f0f0; cursor: pointer;
@@ -135,19 +158,29 @@
       border-radius: 50%; margin-right: 6px; animation: pulse 1.5s infinite;
     }
     .live-dot.paused { background: #b06000; animation: none; }
+
+    /* Hidden file input */
+    #file-import { display: none; }
   </style>
 </head>
 <body>
   <!-- Top Bar -->
   <div class="top-bar">
     <div class="logo">AgentProxy</div>
+    <div class="mode-switch">
+      <button id="btn-mode-live" class="active">实时</button>
+      <button id="btn-mode-offline">离线</button>
+    </div>
+    <span class="mode-badge live" id="mode-badge">LIVE</span>
     <div class="stat-item"><span class="label">消息总数</span><span class="value" id="stat-total">0</span></div>
     <div class="stat-item"><span class="label">SSE</span><span class="value" id="stat-sse">0</span></div>
     <div class="stat-item"><span class="label">错误</span><span class="value" id="stat-error">0</span></div>
     <div class="spacer"></div>
-    <label>刷新间隔(s)</label>
-    <input type="number" id="interval-input" min="1" max="60" value="3">
-    <button id="btn-toggle-poll" class="active"><span class="live-dot" id="live-dot"></span>自动刷新</button>
+    <div id="live-controls">
+      <label>刷新间隔(s)</label>
+      <input type="number" id="interval-input" min="1" max="60" value="3">
+      <button id="btn-toggle-poll" class="active"><span class="live-dot" id="live-dot"></span>自动刷新</button>
+    </div>
     <button id="btn-clear" class="danger">清空</button>
   </div>
 
@@ -156,6 +189,11 @@
     <!-- Left Panel -->
     <div class="left-panel">
       <div class="header"><span>消息列表</span><span id="msg-count">0</span></div>
+      <div class="toolbar">
+        <button id="btn-export">导出</button>
+        <button id="btn-import">导入</button>
+        <input type="file" id="file-import" accept=".json">
+      </div>
       <div class="msg-list" id="msg-list">
         <div class="empty-state">暂无消息，请通过代理端口发送请求</div>
       </div>
@@ -177,6 +215,7 @@
     let polling = true;
     let pollTimer = null;
     let lastTimestamp = 0;
+    let mode = 'live'; // 'live' | 'offline'
 
     // DOM refs
     const elMsgList = document.getElementById('msg-list');
@@ -190,40 +229,158 @@
     const elBtnToggle = document.getElementById('btn-toggle-poll');
     const elLiveDot = document.getElementById('live-dot');
     const elBtnClear = document.getElementById('btn-clear');
+    const elBtnModeLive = document.getElementById('btn-mode-live');
+    const elBtnModeOffline = document.getElementById('btn-mode-offline');
+    const elModeBadge = document.getElementById('mode-badge');
+    const elLiveControls = document.getElementById('live-controls');
+    const elBtnExport = document.getElementById('btn-export');
+    const elBtnImport = document.getElementById('btn-import');
+    const elFileImport = document.getElementById('file-import');
 
-    // --- API helpers ---
-    async function fetchAllMessages() {
-      const res = await fetch(`${API_BASE}/api/messages`);
-      messages = await res.json();
-      lastTimestamp = messages.length > 0 ? Math.max(...messages.map(m => m.timestamp)) : 0;
-      render();
-    }
-
-    async function fetchLatestMessages() {
-      const res = await fetch(`${API_BASE}/api/messages/latest?after=${lastTimestamp}`);
-      const newMsgs = await res.json();
-      if (newMsgs.length > 0) {
-        messages = messages.concat(newMsgs);
-        lastTimestamp = Math.max(...newMsgs.map(m => m.timestamp));
-        render();
+    // --- Mode switching ---
+    function switchMode(newMode) {
+      mode = newMode;
+      if (mode === 'live') {
+        elBtnModeLive.classList.add('active');
+        elBtnModeOffline.classList.remove('active');
+        elModeBadge.className = 'mode-badge live';
+        elModeBadge.textContent = 'LIVE';
+        elLiveControls.style.display = '';
+        polling = true;
+        startPolling();
+        elBtnToggle.classList.add('active');
+        elBtnToggle.innerHTML = '<span class="live-dot" id="live-dot"></span>自动刷新';
+        fetchAllMessages();
+      } else {
+        elBtnModeOffline.classList.add('active');
+        elBtnModeLive.classList.remove('active');
+        elModeBadge.className = 'mode-badge offline';
+        elModeBadge.textContent = 'OFFLINE';
+        elLiveControls.style.display = 'none';
+        stopPolling();
+        polling = false;
       }
     }
 
-    async function fetchStats() {
-      const res = await fetch(`${API_BASE}/api/stats`);
-      const stats = await res.json();
-      elStatTotal.textContent = stats.totalMessages;
-      elStatSSE.textContent = stats.sseMessages;
-      elStatError.textContent = stats.errorMessages;
+    elBtnModeLive.addEventListener('click', () => switchMode('live'));
+    elBtnModeOffline.addEventListener('click', () => switchMode('offline'));
+
+    // --- Export ---
+    function exportMessages() {
+      if (messages.length === 0) {
+        alert('没有可导出的消息');
+        return;
+      }
+      const data = JSON.stringify(messages, null, 2);
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const d = new Date();
+      const filename = `agentproxy-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}${String(d.getSeconds()).padStart(2,'0')}.json`;
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    elBtnExport.addEventListener('click', exportMessages);
+
+    // --- Import ---
+    elBtnImport.addEventListener('click', () => elFileImport.click());
+
+    elFileImport.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const data = JSON.parse(evt.target.result);
+          if (!Array.isArray(data)) {
+            alert('无效的文件格式：需要 JSON 数组');
+            return;
+          }
+          messages = data;
+          selectedId = null;
+          lastTimestamp = messages.length > 0 ? Math.max(...messages.map(m => m.timestamp)) : 0;
+          // Auto switch to offline mode
+          switchMode('offline');
+          render();
+        } catch {
+          alert('文件解析失败：不是有效的 JSON');
+        }
+      };
+      reader.readAsText(file);
+      elFileImport.value = '';
+    });
+
+    // --- API helpers ---
+    async function fetchAllMessages() {
+      try {
+        const res = await fetch(`${API_BASE}/api/messages`);
+        messages = await res.json();
+        lastTimestamp = messages.length > 0 ? Math.max(...messages.map(m => m.timestamp)) : 0;
+        render();
+      } catch {
+        // Server unreachable - suggest offline mode
+        console.warn('Server unreachable, consider switching to offline mode');
+      }
+    }
+
+    async function fetchLatestMessages() {
+      try {
+        const res = await fetch(`${API_BASE}/api/messages/latest?after=${lastTimestamp}`);
+        const newMsgs = await res.json();
+        if (newMsgs.length > 0) {
+          messages = messages.concat(newMsgs);
+          lastTimestamp = Math.max(...newMsgs.map(m => m.timestamp));
+          render();
+        }
+      } catch {
+        // Silently fail
+      }
+    }
+
+    function fetchStats() {
+      if (mode === 'offline') {
+        // Calculate stats from local messages
+        const stats = {
+          totalMessages: messages.length,
+          sseMessages: messages.filter(m => m.isSSE).length,
+          errorMessages: messages.filter(m => m.responseStatus >= 400).length,
+        };
+        elStatTotal.textContent = stats.totalMessages;
+        elStatSSE.textContent = stats.sseMessages;
+        elStatError.textContent = stats.errorMessages;
+        return;
+      }
+      fetch(`${API_BASE}/api/stats`)
+        .then(res => res.json())
+        .then(stats => {
+          elStatTotal.textContent = stats.totalMessages;
+          elStatSSE.textContent = stats.sseMessages;
+          elStatError.textContent = stats.errorMessages;
+        })
+        .catch(() => {});
     }
 
     async function fetchMessageDetail(id) {
-      const res = await fetch(`${API_BASE}/api/messages/${id}`);
-      return await res.json();
+      if (mode === 'offline') {
+        // Find from local messages
+        return messages.find(m => m.id === id) || null;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/api/messages/${id}`);
+        return await res.json();
+      } catch {
+        // Fallback to local
+        return messages.find(m => m.id === id) || null;
+      }
     }
 
     async function clearMessages() {
-      await fetch(`${API_BASE}/api/messages`, { method: 'DELETE' });
+      if (mode === 'live') {
+        try { await fetch(`${API_BASE}/api/messages`, { method: 'DELETE' }); } catch {}
+      }
       messages = [];
       lastTimestamp = 0;
       selectedId = null;
@@ -235,7 +392,9 @@
       stopPolling();
       const interval = (parseInt(elIntervalInput.value, 10) || 3) * 1000;
       pollTimer = setInterval(() => {
-        fetchLatestMessages();
+        if (mode === 'live') {
+          fetchLatestMessages();
+        }
         fetchStats();
       }, interval);
     }
@@ -258,6 +417,7 @@
     }
 
     function formatDuration(ms) {
+      if (!ms) return '-';
       if (ms < 1000) return ms + 'ms';
       return (ms / 1000).toFixed(1) + 's';
     }
@@ -273,13 +433,16 @@
     function renderMessageList() {
       elMsgCount.textContent = messages.length;
       if (messages.length === 0) {
-        elMsgList.innerHTML = '<div class="empty-state">暂无消息，请通过代理端口发送请求</div>';
+        const hint = mode === 'offline'
+          ? '暂无消息，请导入本地文件'
+          : '暂无消息，请通过代理端口发送请求';
+        elMsgList.innerHTML = `<div class="empty-state">${hint}</div>`;
         return;
       }
       elMsgList.innerHTML = messages.map(m => `
         <div class="msg-item${m.id === selectedId ? ' selected' : ''}" data-id="${m.id}">
           <div>
-            <span class="msg-seq">#${m.seq}</span>
+            <span class="msg-seq">#${m.seq || ''}</span>
             <span class="msg-method ${m.method}">${m.method}</span>
             <span class="msg-path">${m.path}</span>
             ${m.isSSE ? '<span class="sse-badge">SSE</span>' : ''}
@@ -403,7 +566,6 @@
       if (polling) {
         startPolling();
         elBtnToggle.classList.add('active');
-        elLiveDot.classList.remove('paused');
         elBtnToggle.innerHTML = '<span class="live-dot" id="live-dot"></span>自动刷新';
       } else {
         stopPolling();
