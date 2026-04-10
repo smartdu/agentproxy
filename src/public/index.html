@@ -219,6 +219,11 @@
       background: none; border: none; font-size: 18px; cursor: pointer; color: #999; padding: 0 4px;
     }
     .modal-close:hover { color: #333; }
+    .toggle-collapse-btn {
+      font-size: 11px; background: none; border: 1px solid #ccc; color: #666;
+      border-radius: 4px; padding: 2px 10px; cursor: pointer; margin-right: 12px;
+    }
+    .toggle-collapse-btn:hover { background: #e8f0fe; color: #1a73e8; border-color: #1a73e8; }
 
     /* Tab bar */
     .tab-bar {
@@ -927,7 +932,7 @@
 
       overlay.innerHTML = `
         <div class="modal-panel">
-          <div class="modal-header"><span>${esc(title)}</span><button class="modal-close">&times;</button></div>
+          <div class="modal-header"><span>${esc(title)}</span><span><button class="toggle-collapse-btn" data-collapse="expand">全部展开</button><button class="toggle-collapse-btn" data-collapse="collapse">全部收起</button></span><button class="modal-close">&times;</button></div>
           <div class="tab-bar">${tabBarHtml}</div>
           <div class="tab-content">${panelsHtml}</div>
         </div>
@@ -945,6 +950,27 @@
         overlay.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
         const panel = overlay.querySelector(`.tab-panel[data-panel="${idx}"]`);
         if (panel) panel.style.display = 'block';
+      });
+
+      // Collapse toggle
+      overlay.querySelector('.modal-header').addEventListener('click', (e) => {
+        const btn = e.target.closest('.toggle-collapse-btn');
+        if (!btn) return;
+        const action = btn.dataset.collapse;
+        const visiblePanel = overlay.querySelector('.tab-panel[style*="block"]');
+        if (!visiblePanel) return;
+        visiblePanel.querySelectorAll('.collapsible-wrap').forEach(wrap => {
+          const header = wrap.querySelector('.collapsible-header');
+          const body = wrap.querySelector('.collapsible-body');
+          if (!header || !body) return;
+          if (action === 'collapse') {
+            header.classList.add('collapsed');
+            body.classList.add('collapsed');
+          } else {
+            header.classList.remove('collapsed');
+            body.classList.remove('collapsed');
+          }
+        });
       });
 
       // Close handlers
