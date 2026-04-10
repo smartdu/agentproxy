@@ -112,32 +112,30 @@
       display: flex; align-items: center; gap: 12px;
     }
     .detail-actions {
-      display: flex; align-items: center; gap: 6px; padding: 8px 16px;
+      display: flex; align-items: center; gap: 6px; padding: 6px 16px;
       background: #fff; border-bottom: 1px solid #e0e0e0; flex-shrink: 0;
     }
-    .detail-actions .action-btn {
-      font-size: 11px; padding: 3px 10px; background: #fff; border: 1px solid #ccc;
+    .detail-actions .section-tab {
+      font-size: 12px; padding: 4px 14px; background: #fff; border: 1px solid #ccc;
+      color: #666; border-radius: 4px; cursor: pointer; transition: all 0.15s; font-weight: 500;
+    }
+    .detail-actions .section-tab:hover { background: #e8f0fe; color: #1a73e8; border-color: #1a73e8; }
+    .detail-actions .section-tab.active { background: #1a73e8; color: #fff; border-color: #1a73e8; }
+    .detail-actions .section-tab .tab-model { font-size: 10px; color: #999; margin-left: 4px; }
+    .detail-actions .section-tab.active .tab-model { color: #cce0ff; }
+    .detail-actions .toolbar-btn {
+      font-size: 11px; padding: 2px 8px; background: none; border: 1px solid #ccc;
       color: #666; border-radius: 4px; cursor: pointer; transition: all 0.15s;
     }
-    .detail-actions .action-btn:hover { background: #e8f0fe; color: #1a73e8; border-color: #1a73e8; }
+    .detail-actions .toolbar-btn:hover { background: #e8f0fe; color: #1a73e8; border-color: #1a73e8; }
+    .detail-actions .toolbar-btn.copy-btn:hover { color: #137333; border-color: #137333; background: #e6f4ea; }
     .detail-actions .nav-links { display: flex; gap: 4px; margin-left: auto; }
     .detail-actions .nav-link {
       font-size: 11px; padding: 2px 8px; background: none; border: 1px solid transparent;
       color: #888; border-radius: 3px; cursor: pointer; transition: all 0.15s;
     }
     .detail-actions .nav-link:hover { background: #f0f2f5; color: #333; border-color: #e0e0e0; }
-    .detail-content { flex: 1; overflow-y: auto; padding: 16px; scroll-behavior: smooth; }
-
-    /* Scroll to top */
-    .scroll-top-btn {
-      position: absolute; right: 16px; bottom: 16px; z-index: 100;
-      width: 36px; height: 36px; border-radius: 50%; border: 1px solid #ccc;
-      background: #fff; color: #666; font-size: 16px; cursor: pointer;
-      display: none; align-items: center; justify-content: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.15s;
-    }
-    .scroll-top-btn:hover { background: #e8f0fe; color: #1a73e8; border-color: #1a73e8; }
-    .scroll-top-btn.visible { display: flex; }
+    .detail-content { flex: 1; overflow-y: auto; padding: 0; scroll-behavior: smooth; }
 
     .section { margin-bottom: 20px; }
     .section-anchor { display: block; position: relative; top: -8px; visibility: hidden; height: 0; }
@@ -197,56 +195,6 @@
       transition: all 0.15s; margin-left: 4px;
     }
     .parse-btn:hover { background: #e8f0fe; color: #1a73e8; border-color: #1a73e8; }
-
-    /* Modal overlay */
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.4); z-index: 1000;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .modal-panel {
-      background: #fff; border-radius: 8px; width: 92%; max-width: 1100px;
-      height: 85vh; display: flex; flex-direction: column;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-    }
-    .modal-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 12px 16px; border-bottom: 1px solid #e0e0e0; font-size: 14px; font-weight: bold;
-    }
-    .modal-close {
-      background: none; border: none; font-size: 18px; cursor: pointer; color: #999; padding: 0 4px;
-    }
-    .modal-close:hover { color: #333; }
-    .toggle-collapse-btn {
-      font-size: 11px; background: none; border: 1px solid #ccc; color: #666;
-      border-radius: 4px; padding: 2px 10px; cursor: pointer; margin-right: 12px;
-    }
-    .toggle-collapse-btn:hover { background: #e8f0fe; color: #1a73e8; border-color: #1a73e8; }
-
-    /* Parse modal split layout */
-    .parse-layout { display: flex; flex: 1; overflow: hidden; }
-    .parse-sidebar {
-      width: 180px; flex-shrink: 0; border-right: 1px solid #e0e0e0;
-      display: flex; flex-direction: column; background: #fafbfc;
-    }
-    .parse-sidebar-item {
-      padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #f0f0f0;
-      transition: all 0.15s;
-    }
-    .parse-sidebar-item:hover { background: #eef4fd; }
-    .parse-sidebar-item.active { background: #e8f0fe; border-left: 3px solid #1a73e8; }
-    .parse-sidebar-item .sidebar-label { font-size: 13px; font-weight: bold; color: #333; }
-    .parse-sidebar-item .sidebar-sub { font-size: 11px; color: #888; margin-top: 2px; }
-    .parse-sidebar-item .sidebar-actions { display: flex; gap: 4px; margin-top: 6px; }
-    .parse-sidebar-item .sidebar-actions button {
-      font-size: 10px; padding: 1px 6px; background: #fff; border: 1px solid #ccc;
-      color: #666; border-radius: 3px; cursor: pointer;
-    }
-    .parse-sidebar-item .sidebar-actions button:hover { color: #1a73e8; border-color: #1a73e8; }
-    .parse-sidebar-item .sidebar-actions button.copy-btn:hover { color: #137333; border-color: #137333; }
-    .parse-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-    .parse-main .tab-bar { flex-shrink: 0; }
-    .parse-main .tab-content { flex: 1; overflow-y: auto; }
 
     /* Tab bar */
     .tab-bar {
@@ -365,19 +313,10 @@
     <!-- Right Panel -->
     <div class="right-panel">
       <div class="header" id="detail-header">消息详情</div>
-      <div class="detail-actions" id="detail-actions" style="display:none">
-        <button class="action-btn" data-action="parse">解析</button>
-        <div class="nav-links">
-          <button class="nav-link" data-nav="sec-req-headers">Req Headers</button>
-          <button class="nav-link" data-nav="sec-req-body">Req Body</button>
-          <button class="nav-link" data-nav="sec-res-headers">Res Headers</button>
-          <button class="nav-link" data-nav="sec-res-body">Res Body</button>
-        </div>
-      </div>
+      <div class="detail-actions" id="detail-actions" style="display:none"></div>
       <div class="detail-content" id="detail-content">
         <div class="no-selection">选择左侧消息查看详情</div>
       </div>
-      <button class="scroll-top-btn" id="scroll-top-btn">↑</button>
     </div>
   </div>
 
@@ -636,10 +575,11 @@
 
     function renderDetail(msg) {
       currentDetailMsg = msg;
+      const elActions = document.getElementById('detail-actions');
       if (!msg) {
         elDetailContent.innerHTML = '<div class="no-selection">选择左侧消息查看详情</div>';
         elDetailHeader.textContent = '消息详情';
-        document.getElementById('detail-actions').style.display = 'none';
+        elActions.style.display = 'none';
         return;
       }
 
@@ -651,61 +591,114 @@
         <span style="color:#999;margin-left:auto">${formatTime(msg.timestamp)} · ${formatDuration(msg.duration)}</span>
       `;
 
-      const reqHeaders = Object.entries(msg.requestHeaders || {}).map(([k, v]) =>
-        `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`
-      ).join('');
+      // Build request and response parsed sections
+      const reqParsed = buildRequestParsed(msg);
+      const resParsed = buildResponseParsed(msg);
 
-      const resHeaders = Object.entries(msg.responseHeaders || {}).map(([k, v]) =>
-        `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`
-      ).join('');
+      // Build action bar: section tabs + copy + expand/collapse + nav
+      const hasReq = !!reqParsed;
+      const hasRes = !!resParsed;
+      const defaultSection = hasReq ? 'req' : 'res';
+      const reqModel = reqParsed ? reqParsed.model : '';
+      const resModel = resParsed ? resParsed.model : '';
 
-      let sseSection = '';
-      if (msg.isSSE && msg.sseChunks && msg.sseChunks.length > 0) {
-        const chunksHtml = msg.sseChunks.map((c, i) =>
-          `<div style="margin-bottom:4px;color:#999;font-size:11px">--- Chunk #${i + 1} @ ${formatTime(c.timestamp)} ---</div>` +
-          `<div>${esc(c.data)}</div>`
-        ).join('');
-        sseSection = `
-          <div class="section">
-            <div class="section-title">SSE Chunks (${msg.sseChunks.length})</div>
-            <div class="body-block sse-stream">${chunksHtml}</div>
-          </div>
-        `;
+      let actionsHtml = '';
+      if (hasReq) actionsHtml += `<button class="section-tab${defaultSection === 'req' ? ' active' : ''}" data-section="req">请求<span class="tab-model">${esc(reqModel)}</span></button>`;
+      if (hasRes) actionsHtml += `<button class="section-tab${defaultSection === 'res' ? ' active' : ''}" data-section="res">响应<span class="tab-model">${esc(resModel)}</span></button>`;
+      if (hasReq || hasRes) {
+        actionsHtml += `<span style="width:1px;height:20px;background:#e0e0e0;margin:0 6px"></span>`;
+        actionsHtml += `<button class="toolbar-btn copy-btn" data-action="copy">Copy</button>`;
+        actionsHtml += `<button class="toolbar-btn" data-action="expand">全部展开</button>`;
+        actionsHtml += `<button class="toolbar-btn" data-action="collapse">全部收起</button>`;
       }
+      elActions.innerHTML = actionsHtml;
+      elActions.style.display = '';
 
-      elDetailContent.innerHTML = `
-        <div class="section">
-          <span class="section-anchor" id="sec-req-info"></span>
-          <div class="section-title">请求信息</div>
+      // Build detail content: tab bars + tab panels for each section
+      const sections = [];
+      if (reqParsed) sections.push({ key: 'req', tabs: reqParsed.tabs });
+      if (resParsed) sections.push({ key: 'res', tabs: resParsed.tabs });
+
+      const contentHtml = sections.map((sec, si) => {
+        const isActive = sec.key === defaultSection;
+        const tabBarHtml = sec.tabs.map((t, ti) =>
+          `<button class="${ti === 0 ? 'active' : ''}" data-tab="${ti}">${esc(t.label)}</button>`
+        ).join('');
+        const panelsHtml = sec.tabs.map((t, ti) =>
+          `<div class="tab-panel" style="display:${ti === 0 ? 'block' : 'none'}" data-panel="${ti}">${t.content}</div>`
+        ).join('');
+        return `<div class="parse-section" data-section="${sec.key}" style="display:${isActive ? 'flex' : 'none'};flex-direction:column;flex:1;overflow:hidden">
+          <div class="tab-bar">${tabBarHtml}</div>
+          <div class="tab-content">${panelsHtml}</div>
+        </div>`;
+      }).join('');
+
+      elDetailContent.innerHTML = contentHtml;
+    }
+
+    function buildRequestParsed(msg) {
+      if (!msg.requestBody) return null;
+      const body = parseAnthropicRequest(msg.requestBody);
+      if (!body) {
+        return {
+          model: '无法解析',
+          tabs: [{ label: '原始数据', content: `<div class="parse-fallback">无法解析为 Anthropic 格式</div><div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` }]
+        };
+      }
+      const tabs = [];
+      tabs.push({ label: '模型配置', content: renderConfigTable(body) });
+      const sysCount = body.system ? (Array.isArray(body.system) ? body.system.length : 1) : 0;
+      tabs.push({ label: `系统提示 (${sysCount})`, content: renderSystemPrompt(body.system) });
+      tabs.push({ label: `对话消息 (${(body.messages || []).length})`, content: renderMessages(body.messages) });
+      const toolTab = renderToolDefs(body.tools);
+      if (toolTab) tabs.push(toolTab);
+      tabs.push({ label: '原始数据', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` });
+      return { model: body.model || '', tabs };
+    }
+
+    function buildResponseParsed(msg) {
+      if (msg.isSSE && msg.sseChunks && msg.sseChunks.length > 0) {
+        const reconstructed = reconstructSSEMessage(msg.sseChunks);
+        const overviewHtml = `
           <table class="kv-table">
-            <tr><td>Method</td><td>${msg.method}</td></tr>
-            <tr><td>URL</td><td>${esc(msg.url)}</td></tr>
+            <tr><td>ID</td><td>${esc(reconstructed.id || '-')}</td></tr>
+            <tr><td>Model</td><td>${esc(reconstructed.model || '-')}</td></tr>
+            <tr><td>Stop Reason</td><td>${esc(reconstructed.stopReason || (reconstructed.isComplete ? '' : '流未完成'))}</td></tr>
+            <tr><td>Input Tokens</td><td>${reconstructed.usage.inputTokens || '-'}</td></tr>
+            <tr><td>Output Tokens</td><td>${reconstructed.usage.outputTokens || '-'}</td></tr>
           </table>
-        </div>
-        <div class="section">
-          <span class="section-anchor" id="sec-req-headers"></span>
-          <div class="section-title">请求 Headers</div>
-          <table class="kv-table">${reqHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>
-        </div>
-        <div class="section">
-          <span class="section-anchor" id="sec-req-body"></span>
-          <div class="section-title">请求 Body</div>
-          <div class="body-block" id="req-body">${msg.requestBody ? esc(tryFormatJSON(msg.requestBody)) : '<span style="color:#aaa">无</span>'}</div>
-        </div>
-        <div class="section">
-          <span class="section-anchor" id="sec-res-headers"></span>
-          <div class="section-title">响应 Headers</div>
-          <table class="kv-table">${resHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>
-        </div>
-        <div class="section">
-          <span class="section-anchor" id="sec-res-body"></span>
-          <div class="section-title">响应 Body</div>
-          <div class="body-block" id="res-body">${msg.responseBody ? esc(tryFormatJSON(msg.responseBody)) : '<span style="color:#aaa">无</span>'}</div>
-        </div>
-        ${sseSection}
-      `;
-      // Show action bar
-      document.getElementById('detail-actions').style.display = '';
+        `;
+        const contentTabs = renderContentBlocks(reconstructed.content, msg.responseBody);
+        const allTabs = [{ label: '消息概览', content: overviewHtml }, ...contentTabs];
+        const rawEvents = parseSSEChunks(msg.sseChunks);
+        const rawEventsHtml = rawEvents.map((evt, i) =>
+          `<div style="margin-bottom:6px"><span style="color:#888;font-size:11px">[${i + 1}]</span> <span style="color:#1a73e8;font-size:11px">${esc(evt.event)}</span><div class="parse-text" style="margin-top:2px">${esc(JSON.stringify(evt.data, null, 2))}</div></div>`
+        ).join('');
+        allTabs[allTabs.length - 1] = { label: 'SSE 事件流', content: rawEventsHtml };
+        return { model: 'SSE', tabs: allTabs };
+      } else if (msg.responseBody) {
+        const rawBody = msg.responseBody;
+        const parsed = parseAnthropicResponse(rawBody);
+        if (!parsed) {
+          return {
+            model: '无法解析',
+            tabs: [{ label: '原始数据', content: `<div class="parse-fallback">无法解析为 Anthropic 格式</div><div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(rawBody))}</div></div>` }]
+          };
+        }
+        const overviewHtml = `
+          <table class="kv-table">
+            <tr><td>ID</td><td>${esc(parsed.id || '-')}</td></tr>
+            <tr><td>Model</td><td>${esc(parsed.model || '-')}</td></tr>
+            <tr><td>Stop Reason</td><td>${esc(parsed.stopReason || '-')}</td></tr>
+            <tr><td>Input Tokens</td><td>${parsed.usage.inputTokens || '-'}</td></tr>
+            <tr><td>Output Tokens</td><td>${parsed.usage.outputTokens || '-'}</td></tr>
+          </table>
+        `;
+        const contentTabs = renderContentBlocks(parsed.content, rawBody);
+        const allTabs = [{ label: '消息概览', content: overviewHtml }, ...contentTabs];
+        return { model: parsed.model || '', tabs: allTabs };
+      }
+      return null;
     }
 
     function esc(str) {
@@ -730,34 +723,81 @@
       renderDetail(detail);
     });
 
-    // --- Action bar events ---
+    // --- Action bar & detail content events ---
     const elDetailActions = document.getElementById('detail-actions');
-    const elScrollTop = document.getElementById('scroll-top-btn');
 
+    // Action bar: section tabs, copy, expand/collapse
     elDetailActions.addEventListener('click', async (e) => {
-      const actionBtn = e.target.closest('.action-btn');
-      if (actionBtn) {
-        const action = actionBtn.dataset.action;
-        if (action === 'parse') {
-          handleParse();
-        }
+      // Section tab switching
+      const secTab = e.target.closest('.section-tab');
+      if (secTab) {
+        const section = secTab.dataset.section;
+        elDetailActions.querySelectorAll('.section-tab').forEach(t => t.classList.remove('active'));
+        secTab.classList.add('active');
+        elDetailContent.querySelectorAll('.parse-section').forEach(s => s.style.display = 'none');
+        const target = elDetailContent.querySelector(`.parse-section[data-section="${section}"]`);
+        if (target) target.style.display = 'flex';
         return;
       }
-      // Nav links
-      const navBtn = e.target.closest('.nav-link');
-      if (navBtn) {
-        const targetId = navBtn.dataset.nav;
-        const anchor = document.getElementById(targetId);
-        if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      // Toolbar buttons
+      const toolbarBtn = e.target.closest('.toolbar-btn');
+      if (!toolbarBtn) return;
+      const action = toolbarBtn.dataset.action;
+
+      if (action === 'copy') {
+        // Copy the active section's raw data tab content
+        const activeSection = elDetailContent.querySelector('.parse-section[style*="flex"]');
+        if (!activeSection) return;
+        // Find the last tab-panel (raw data) or active panel
+        const activePanel = activeSection.querySelector('.tab-panel[style*="block"]');
+        if (activePanel) {
+          const text = activePanel.textContent;
+          try {
+            await navigator.clipboard.writeText(text);
+            const orig = toolbarBtn.textContent;
+            toolbarBtn.textContent = 'Copied!';
+            toolbarBtn.style.color = '#137333';
+            toolbarBtn.style.borderColor = '#137333';
+            setTimeout(() => { toolbarBtn.textContent = orig; toolbarBtn.style.color = ''; toolbarBtn.style.borderColor = ''; }, 1500);
+          } catch {
+            const orig = toolbarBtn.textContent;
+            toolbarBtn.textContent = 'Failed';
+            setTimeout(() => { toolbarBtn.textContent = orig; }, 1500);
+          }
+        }
+      } else if (action === 'expand' || action === 'collapse') {
+        const activeSection = elDetailContent.querySelector('.parse-section[style*="flex"]');
+        if (!activeSection) return;
+        const activePanel = activeSection.querySelector('.tab-panel[style*="block"]');
+        if (!activePanel) return;
+        activePanel.querySelectorAll('.collapsible-wrap').forEach(wrap => {
+          const header = wrap.querySelector('.collapsible-header');
+          const body = wrap.querySelector('.collapsible-body');
+          if (!header || !body) return;
+          if (action === 'collapse') {
+            header.classList.add('collapsed');
+            body.classList.add('collapsed');
+          } else {
+            header.classList.remove('collapsed');
+            body.classList.remove('collapsed');
+          }
+        });
       }
     });
 
-    // Scroll to top button
-    elDetailContent.addEventListener('scroll', () => {
-      elScrollTop.classList.toggle('visible', elDetailContent.scrollTop > 200);
-    });
-    elScrollTop.addEventListener('click', () => {
-      elDetailContent.scrollTo({ top: 0, behavior: 'smooth' });
+    // Tab switching within detail content
+    elDetailContent.addEventListener('click', (e) => {
+      const tabBtn = e.target.closest('button[data-tab]');
+      if (!tabBtn) return;
+      const section = tabBtn.closest('.parse-section');
+      if (!section) return;
+      const idx = tabBtn.dataset.tab;
+      section.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+      tabBtn.classList.add('active');
+      section.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+      const panel = section.querySelector(`.tab-panel[data-panel="${idx}"]`);
+      if (panel) panel.style.display = 'block';
     });
 
     elBtnToggle.addEventListener('click', () => {
@@ -915,128 +955,6 @@
       }
     }
 
-    // --- Modal ---
-    function openParseModal(title, sections) {
-      // sections: [{key, label, sub, tabs: [{label, content}]}]
-      closeParseModal();
-      const overlay = document.createElement('div');
-      overlay.className = 'modal-overlay';
-      overlay.id = 'parse-modal';
-
-      const sidebarHtml = sections.map((sec, i) => `
-        <div class="parse-sidebar-item${i === 0 ? ' active' : ''}" data-section="${i}">
-          <div class="sidebar-label">${esc(sec.label)}</div>
-          <div class="sidebar-sub">${esc(sec.sub || '')}</div>
-          <div class="sidebar-actions">
-            <button class="copy-btn" data-copy-target="${sec.key}">Copy</button>
-          </div>
-        </div>
-      `).join('');
-
-      // Pre-render all tab bars + tab contents for each section
-      const mainHtml = sections.map((sec, si) => {
-        const tabBarHtml = sec.tabs.map((t, ti) =>
-          `<button class="${ti === 0 ? 'active' : ''}" data-tab="${ti}">${esc(t.label)}</button>`
-        ).join('');
-        const panelsHtml = sec.tabs.map((t, ti) =>
-          `<div class="tab-panel" style="display:${ti === 0 ? 'block' : 'none'}" data-panel="${ti}">${t.content}</div>`
-        ).join('');
-        return `<div class="parse-main" data-main="${si}" style="display:${si === 0 ? 'flex' : 'none'}">
-          <div class="tab-bar">${tabBarHtml}</div>
-          <div class="tab-content">${panelsHtml}</div>
-        </div>`;
-      }).join('');
-
-      overlay.innerHTML = `
-        <div class="modal-panel">
-          <div class="modal-header"><span>${esc(title)}</span><span><button class="toggle-collapse-btn" data-collapse="expand">全部展开</button><button class="toggle-collapse-btn" data-collapse="collapse">全部收起</button></span><button class="modal-close">&times;</button></div>
-          <div class="parse-layout">
-            <div class="parse-sidebar">${sidebarHtml}</div>
-            ${mainHtml}
-          </div>
-        </div>
-      `;
-
-      document.body.appendChild(overlay);
-
-      // Sidebar switching
-      overlay.querySelector('.parse-sidebar').addEventListener('click', (e) => {
-        const copyBtn = e.target.closest('.copy-btn');
-        if (copyBtn) {
-          const key = copyBtn.dataset.copyTarget;
-          const el = document.getElementById(key);
-          if (el) {
-            navigator.clipboard.writeText(el.textContent).then(() => {
-              const orig = copyBtn.textContent;
-              copyBtn.textContent = 'Copied!';
-              copyBtn.style.color = '#137333';
-              setTimeout(() => { copyBtn.textContent = orig; copyBtn.style.color = ''; }, 1500);
-            });
-          }
-          return;
-        }
-        const item = e.target.closest('.parse-sidebar-item');
-        if (!item) return;
-        const idx = item.dataset.section;
-        overlay.querySelectorAll('.parse-sidebar-item').forEach(it => it.classList.remove('active'));
-        item.classList.add('active');
-        overlay.querySelectorAll('.parse-main').forEach(m => m.style.display = 'none');
-        const main = overlay.querySelector(`.parse-main[data-main="${idx}"]`);
-        if (main) main.style.display = 'flex';
-      });
-
-      // Tab switching (delegated for all parse-main)
-      overlay.addEventListener('click', (e) => {
-        const btn = e.target.closest('button[data-tab]');
-        if (!btn) return;
-        const main = btn.closest('.parse-main');
-        if (!main) return;
-        const idx = btn.dataset.tab;
-        main.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        main.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
-        const panel = main.querySelector(`.tab-panel[data-panel="${idx}"]`);
-        if (panel) panel.style.display = 'block';
-      });
-
-      // Collapse toggle
-      overlay.querySelector('.modal-header').addEventListener('click', (e) => {
-        const btn = e.target.closest('.toggle-collapse-btn');
-        if (!btn) return;
-        const action = btn.dataset.collapse;
-        const visibleMain = overlay.querySelector('.parse-main[style*="flex"]');
-        if (!visibleMain) return;
-        const visiblePanel = visibleMain.querySelector('.tab-panel[style*="block"]');
-        if (!visiblePanel) return;
-        visiblePanel.querySelectorAll('.collapsible-wrap').forEach(wrap => {
-          const header = wrap.querySelector('.collapsible-header');
-          const body = wrap.querySelector('.collapsible-body');
-          if (!header || !body) return;
-          if (action === 'collapse') {
-            header.classList.add('collapsed');
-            body.classList.add('collapsed');
-          } else {
-            header.classList.remove('collapsed');
-            body.classList.remove('collapsed');
-          }
-        });
-      });
-
-      // Close handlers
-      overlay.querySelector('.modal-close').addEventListener('click', closeParseModal);
-      overlay.addEventListener('click', (e) => { if (e.target === overlay) closeParseModal(); });
-      overlay._escHandler = (e) => { if (e.key === 'Escape') closeParseModal(); };
-      document.addEventListener('keydown', overlay._escHandler);
-    }
-
-    function closeParseModal() {
-      const modal = document.getElementById('parse-modal');
-      if (modal) {
-        if (modal._escHandler) document.removeEventListener('keydown', modal._escHandler);
-        modal.remove();
-      }
-    }
-
     // --- Parse Render Helpers ---
     function renderConfigTable(body) {
       const keys = ['model', 'max_tokens', 'temperature', 'top_p', 'top_k', 'stream', 'stop_sequences', 'metadata'];
@@ -1153,78 +1071,6 @@
         );
       }).join('');
       return { label: `工具定义 (${tools.length})`, content: html };
-    }
-
-    function handleParse() {
-      const msg = currentDetailMsg;
-      if (!msg) return;
-      const sections = [];
-
-      // --- Request section ---
-      if (msg.requestBody) {
-        const body = parseAnthropicRequest(msg.requestBody);
-        if (body) {
-          const tabs = [];
-          tabs.push({ label: '模型配置', content: renderConfigTable(body) });
-          const sysCount = body.system ? (Array.isArray(body.system) ? body.system.length : 1) : 0;
-          tabs.push({ label: `系统提示 (${sysCount})`, content: renderSystemPrompt(body.system) });
-          tabs.push({ label: `对话消息 (${(body.messages || []).length})`, content: renderMessages(body.messages) });
-          const toolTab = renderToolDefs(body.tools);
-          if (toolTab) tabs.push(toolTab);
-          tabs.push({ label: '原始数据', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` });
-          sections.push({ key: 'req-body', label: '请求', sub: body.model || '', tabs });
-        } else {
-          sections.push({ key: 'req-body', label: '请求', sub: '无法解析', tabs: [
-            { label: '原始数据', content: `<div class="parse-fallback">无法解析为 Anthropic 格式</div><div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` }
-          ]});
-        }
-      }
-
-      // --- Response section ---
-      if (msg.isSSE && msg.sseChunks && msg.sseChunks.length > 0) {
-        const reconstructed = reconstructSSEMessage(msg.sseChunks);
-        const overviewHtml = `
-          <table class="kv-table">
-            <tr><td>ID</td><td>${esc(reconstructed.id || '-')}</td></tr>
-            <tr><td>Model</td><td>${esc(reconstructed.model || '-')}</td></tr>
-            <tr><td>Stop Reason</td><td>${esc(reconstructed.stopReason || (reconstructed.isComplete ? '' : '流未完成'))}</td></tr>
-            <tr><td>Input Tokens</td><td>${reconstructed.usage.inputTokens || '-'}</td></tr>
-            <tr><td>Output Tokens</td><td>${reconstructed.usage.outputTokens || '-'}</td></tr>
-          </table>
-        `;
-        const contentTabs = renderContentBlocks(reconstructed.content, msg.responseBody);
-        const allTabs = [{ label: '消息概览', content: overviewHtml }, ...contentTabs];
-        const rawEvents = parseSSEChunks(msg.sseChunks);
-        const rawEventsHtml = rawEvents.map((evt, i) =>
-          `<div style="margin-bottom:6px"><span style="color:#888;font-size:11px">[${i + 1}]</span> <span style="color:#1a73e8;font-size:11px">${esc(evt.event)}</span><div class="parse-text" style="margin-top:2px">${esc(JSON.stringify(evt.data, null, 2))}</div></div>`
-        ).join('');
-        allTabs[allTabs.length - 1] = { label: 'SSE 事件流', content: rawEventsHtml };
-        sections.push({ key: 'res-body', label: '响应', sub: 'SSE', tabs: allTabs });
-      } else if (msg.responseBody) {
-        const rawBody = msg.responseBody;
-        const parsed = parseAnthropicResponse(rawBody);
-        if (parsed) {
-          const overviewHtml = `
-            <table class="kv-table">
-              <tr><td>ID</td><td>${esc(parsed.id || '-')}</td></tr>
-              <tr><td>Model</td><td>${esc(parsed.model || '-')}</td></tr>
-              <tr><td>Stop Reason</td><td>${esc(parsed.stopReason || '-')}</td></tr>
-              <tr><td>Input Tokens</td><td>${parsed.usage.inputTokens || '-'}</td></tr>
-              <tr><td>Output Tokens</td><td>${parsed.usage.outputTokens || '-'}</td></tr>
-            </table>
-          `;
-          const contentTabs = renderContentBlocks(parsed.content, rawBody);
-          const allTabs = [{ label: '消息概览', content: overviewHtml }, ...contentTabs];
-          sections.push({ key: 'res-body', label: '响应', sub: parsed.model || '', tabs: allTabs });
-        } else {
-          sections.push({ key: 'res-body', label: '响应', sub: '无法解析', tabs: [
-            { label: '原始数据', content: `<div class="parse-fallback">无法解析为 Anthropic 格式</div><div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(rawBody))}</div></div>` }
-          ]});
-        }
-      }
-
-      if (sections.length === 0) return;
-      openParseModal('消息解析', sections);
     }
 
     // --- Init ---
