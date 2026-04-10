@@ -128,7 +128,6 @@
       color: #666; border-radius: 4px; cursor: pointer; transition: all 0.15s;
     }
     .detail-actions .toolbar-btn:hover { background: #e8f0fe; color: #1a73e8; border-color: #1a73e8; }
-    .detail-actions .toolbar-btn.copy-btn:hover { color: #137333; border-color: #137333; background: #e6f4ea; }
     .detail-actions .nav-links { display: flex; gap: 4px; margin-left: auto; }
     .detail-actions .nav-link {
       font-size: 11px; padding: 2px 8px; background: none; border: 1px solid transparent;
@@ -619,7 +618,6 @@
       if (hasRes) actionsHtml += `<button class="section-tab${defaultSection === 'res' ? ' active' : ''}" data-section="res">响应<span class="tab-model">${esc(resModel)}</span></button>`;
       if (hasReq || hasRes) {
         actionsHtml += `<span style="width:1px;height:20px;background:#e0e0e0;margin:0 6px"></span>`;
-        actionsHtml += `<button class="toolbar-btn copy-btn" data-action="copy">Copy</button>`;
         actionsHtml += `<button class="toolbar-btn" data-action="expand">全部展开</button>`;
         actionsHtml += `<button class="toolbar-btn" data-action="collapse">全部收起</button>`;
       }
@@ -778,28 +776,7 @@
       if (!toolbarBtn) return;
       const action = toolbarBtn.dataset.action;
 
-      if (action === 'copy') {
-        // Copy the active section's raw data tab content
-        const activeSection = elDetailContent.querySelector('.parse-section[style*="flex"]');
-        if (!activeSection) return;
-        // Find the last tab-panel (raw data) or active panel
-        const activePanel = activeSection.querySelector('.tab-panel[style*="block"]');
-        if (activePanel) {
-          const text = activePanel.textContent;
-          try {
-            await navigator.clipboard.writeText(text);
-            const orig = toolbarBtn.textContent;
-            toolbarBtn.textContent = 'Copied!';
-            toolbarBtn.style.color = '#137333';
-            toolbarBtn.style.borderColor = '#137333';
-            setTimeout(() => { toolbarBtn.textContent = orig; toolbarBtn.style.color = ''; toolbarBtn.style.borderColor = ''; }, 1500);
-          } catch {
-            const orig = toolbarBtn.textContent;
-            toolbarBtn.textContent = 'Failed';
-            setTimeout(() => { toolbarBtn.textContent = orig; }, 1500);
-          }
-        }
-      } else if (action === 'expand' || action === 'collapse') {
+      if (action === 'expand' || action === 'collapse') {
         const activeSection = elDetailContent.querySelector('.parse-section[style*="flex"]');
         if (!activeSection) return;
         const activePanel = activeSection.querySelector('.tab-panel[style*="block"]');
