@@ -161,6 +161,103 @@
 
     /* Hidden file input */
     #file-import { display: none; }
+
+    /* Parse button */
+    .parse-btn {
+      font-size: 11px; text-transform: none; letter-spacing: 0;
+      background: none; border: 1px solid #ccc; color: #666;
+      border-radius: 4px; padding: 2px 8px; cursor: pointer;
+      transition: all 0.15s; margin-left: 4px;
+    }
+    .parse-btn:hover { background: #e8f0fe; color: #1a73e8; border-color: #1a73e8; }
+
+    /* Modal overlay */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4); z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .modal-panel {
+      background: #fff; border-radius: 8px; width: 90%; max-width: 900px;
+      height: 85vh; display: flex; flex-direction: column;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; border-bottom: 1px solid #e0e0e0; font-size: 14px; font-weight: bold;
+    }
+    .modal-close {
+      background: none; border: none; font-size: 18px; cursor: pointer; color: #999; padding: 0 4px;
+    }
+    .modal-close:hover { color: #333; }
+
+    /* Tab bar */
+    .tab-bar {
+      display: flex; border-bottom: 1px solid #e0e0e0; padding: 0 16px;
+      overflow-x: auto; flex-shrink: 0;
+    }
+    .tab-bar button {
+      background: none; border: none; border-bottom: 2px solid transparent;
+      padding: 8px 14px; font-size: 12px; color: #666; cursor: pointer;
+      white-space: nowrap; transition: all 0.15s;
+    }
+    .tab-bar button:hover { color: #1a73e8; }
+    .tab-bar button.active { color: #1a73e8; border-bottom-color: #1a73e8; font-weight: bold; }
+    .tab-content { flex: 1; overflow-y: auto; padding: 16px; }
+
+    /* Parse content styles */
+    .parse-card {
+      background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px;
+      padding: 12px; margin-bottom: 10px; white-space: pre-wrap; word-break: break-word;
+    }
+    .role-badge {
+      display: inline-block; font-size: 11px; font-weight: bold; padding: 2px 8px;
+      border-radius: 3px; margin-right: 8px;
+    }
+    .role-badge.user { background: #e6f4ea; color: #137333; }
+    .role-badge.assistant { background: #e8f0fe; color: #1a73e8; }
+    .role-badge.system { background: #f3e8fd; color: #7627bb; }
+    .parse-text {
+      font-family: 'Fira Code', 'Consolas', monospace; font-size: 12px;
+      white-space: pre-wrap; word-break: break-word; line-height: 1.5;
+      overflow-y: auto;
+    }
+    .content-block-card {
+      background: #fff; border: 1px solid #e0e0e0; border-radius: 6px;
+      padding: 12px; margin-bottom: 10px;
+    }
+    .content-block-card .block-label {
+      font-size: 11px; font-weight: bold; color: #888; margin-bottom: 6px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .content-block-card .tool-name {
+      font-size: 13px; font-weight: bold; color: #1a73e8; margin-bottom: 6px;
+    }
+    .content-block-card .tool-input {
+      background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px;
+      padding: 10px; font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 12px; white-space: pre-wrap; word-break: break-all;
+      max-height: 300px; overflow-y: auto;
+    }
+    .parse-fallback { color: #b06000; font-size: 13px; padding: 20px 0; }
+
+    /* Collapsible */
+    .collapsible-header {
+      display: flex; align-items: center; cursor: pointer; user-select: none;
+      padding: 8px 12px; background: #f0f2f5; border: 1px solid #e0e0e0;
+      border-radius: 6px; margin-bottom: 6px; gap: 8px;
+    }
+    .collapsible-header:hover { background: #e8eaed; }
+    .collapsible-arrow {
+      font-size: 10px; color: #666; transition: transform 0.2s;
+      display: inline-block; width: 14px; text-align: center;
+    }
+    .collapsible-header.collapsed .collapsible-arrow { transform: rotate(-90deg); }
+    .collapsible-header .collapsible-title {
+      flex: 1; font-size: 12px; color: #333; font-weight: 500;
+    }
+    .collapsible-body { margin-bottom: 8px; }
+    .collapsible-body.collapsed { display: none; }
   </style>
 </head>
 <body>
@@ -462,6 +559,7 @@
     }
 
     function renderDetail(msg) {
+      currentDetailMsg = msg;
       if (!msg) {
         elDetailContent.innerHTML = '<div class="no-selection">选择左侧消息查看详情</div>';
         elDetailHeader.textContent = '消息详情';
@@ -511,7 +609,7 @@
           <table class="kv-table">${reqHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>
         </div>
         <div class="section">
-          <div class="section-title">请求 Body<button class="copy-btn" data-copy="req-body">Copy</button></div>
+          <div class="section-title">请求 Body<span><button class="copy-btn" data-copy="req-body">Copy</button><button class="parse-btn" data-parse="req">解析</button></span></div>
           <div class="body-block" id="req-body">${msg.requestBody ? esc(tryFormatJSON(msg.requestBody)) : '<span style="color:#aaa">无</span>'}</div>
         </div>
         <div class="section">
@@ -519,7 +617,7 @@
           <table class="kv-table">${resHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>
         </div>
         <div class="section">
-          <div class="section-title">响应 Body<button class="copy-btn" data-copy="res-body">Copy</button></div>
+          <div class="section-title">响应 Body<span><button class="copy-btn" data-copy="res-body">Copy</button><button class="parse-btn" data-parse="res">解析</button></span></div>
           <div class="body-block" id="res-body">${msg.responseBody ? esc(tryFormatJSON(msg.responseBody)) : '<span style="color:#aaa">无</span>'}</div>
         </div>
         ${sseSection}
@@ -549,6 +647,15 @@
     });
 
     elDetailContent.addEventListener('click', async (e) => {
+      // Parse button
+      const parseBtn = e.target.closest('.parse-btn');
+      if (parseBtn) {
+        const target = parseBtn.dataset.parse;
+        if (target === 'req') handleParseRequest();
+        else if (target === 'res') handleParseResponse();
+        return;
+      }
+      // Copy button
       const btn = e.target.closest('.copy-btn');
       if (!btn) return;
       const targetId = btn.dataset.copy;
@@ -586,6 +693,381 @@
     elBtnClear.addEventListener('click', () => {
       if (confirm('确定清空所有消息？')) clearMessages();
     });
+
+    // --- Anthropic Parse ---
+    let currentDetailMsg = null;
+
+    function parseSSEChunks(sseChunks) {
+      // Concatenate all chunk data and parse into SSE events
+      const events = [];
+      const allData = sseChunks.map(c => c.data).join('\n');
+      const blocks = allData.split(/\n\n+/);
+      for (const block of blocks) {
+        if (!block.trim()) continue;
+        let eventName = '';
+        let dataStr = '';
+        for (const line of block.split('\n')) {
+          if (line.startsWith('event:')) {
+            eventName = line.slice(6).trim();
+          } else if (line.startsWith('data:')) {
+            dataStr += line.slice(5).trim();
+          } else if (line.trim()) {
+            dataStr += line.trim();
+          }
+        }
+        if (dataStr) {
+          try {
+            events.push({ event: eventName, data: JSON.parse(dataStr) });
+          } catch {
+            events.push({ event: eventName, data: dataStr });
+          }
+        }
+      }
+      return events;
+    }
+
+    function reconstructSSEMessage(sseChunks) {
+      const events = parseSSEChunks(sseChunks);
+      const msg = { id: '', model: '', role: 'assistant', content: [], stopReason: '', usage: {}, isComplete: false };
+      let currentBlock = null;
+      let currentInputJson = '';
+
+      for (const evt of events) {
+        if (evt.event === 'message_start' && evt.data && evt.data.message) {
+          msg.id = evt.data.message.id || '';
+          msg.model = evt.data.message.model || '';
+          msg.role = evt.data.message.role || 'assistant';
+          msg.usage.inputTokens = evt.data.message.usage?.input_tokens || 0;
+        } else if (evt.event === 'content_block_start' && evt.data) {
+          const block = evt.data.content_block;
+          if (block) {
+            if (block.type === 'text') {
+              currentBlock = { type: 'text', text: block.text || '' };
+            } else if (block.type === 'tool_use') {
+              currentBlock = { type: 'tool_use', id: block.id || '', name: block.name || '', input: '' };
+              currentInputJson = '';
+            } else if (block.type === 'thinking') {
+              currentBlock = { type: 'thinking', thinking: block.thinking || '' };
+            } else {
+              currentBlock = { type: block.type, raw: block };
+            }
+          }
+        } else if (evt.event === 'content_block_delta' && evt.data && currentBlock) {
+          const delta = evt.data.delta;
+          if (delta) {
+            if (delta.type === 'text_delta' && currentBlock.type === 'text') {
+              currentBlock.text += delta.text || '';
+            } else if (delta.type === 'input_json_delta' && currentBlock.type === 'tool_use') {
+              currentInputJson += delta.partial_json || '';
+            } else if (delta.type === 'thinking_delta' && currentBlock.type === 'thinking') {
+              currentBlock.thinking += delta.thinking || '';
+            }
+          }
+        } else if (evt.event === 'content_block_stop') {
+          if (currentBlock) {
+            if (currentBlock.type === 'tool_use') {
+              try {
+                currentBlock.input = currentInputJson ? JSON.parse(currentInputJson) : {};
+              } catch {
+                currentBlock.input = currentInputJson;
+              }
+              currentInputJson = '';
+            }
+            msg.content.push(currentBlock);
+            currentBlock = null;
+          }
+        } else if (evt.event === 'message_delta' && evt.data) {
+          if (evt.data.delta) msg.stopReason = evt.data.delta.stop_reason || '';
+          if (evt.data.usage) msg.usage.outputTokens = evt.data.usage.output_tokens || 0;
+        } else if (evt.event === 'message_stop') {
+          msg.isComplete = true;
+        }
+      }
+      // If stream ended without content_block_stop, push current block
+      if (currentBlock) {
+        if (currentBlock.type === 'tool_use') {
+          try {
+            currentBlock.input = currentInputJson ? JSON.parse(currentInputJson) : {};
+          } catch {
+            currentBlock.input = currentInputJson;
+          }
+        }
+        msg.content.push(currentBlock);
+      }
+      return msg;
+    }
+
+    function parseAnthropicRequest(bodyStr) {
+      try {
+        const body = JSON.parse(bodyStr);
+        if (!body.messages && !body.model) return null;
+        return body;
+      } catch {
+        return null;
+      }
+    }
+
+    function parseAnthropicResponse(bodyStr) {
+      try {
+        const body = JSON.parse(bodyStr);
+        if (!body.type && !body.role && !body.content) return null;
+        return {
+          id: body.id || '',
+          model: body.model || '',
+          role: body.role || 'assistant',
+          content: body.content || [],
+          stopReason: body.stop_reason || body.stopReason || '',
+          usage: {
+            inputTokens: body.usage?.input_tokens || 0,
+            outputTokens: body.usage?.output_tokens || 0,
+          },
+          isComplete: true,
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    // --- Modal ---
+    function openParseModal(title, tabs) {
+      closeParseModal();
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.id = 'parse-modal';
+
+      const tabBarHtml = tabs.map((t, i) =>
+        `<button class="${i === 0 ? 'active' : ''}" data-tab="${i}">${esc(t.label)}</button>`
+      ).join('');
+
+      const panelsHtml = tabs.map((t, i) =>
+        `<div class="tab-panel" style="display:${i === 0 ? 'block' : 'none'}" data-panel="${i}">${t.content}</div>`
+      ).join('');
+
+      overlay.innerHTML = `
+        <div class="modal-panel">
+          <div class="modal-header"><span>${esc(title)}</span><button class="modal-close">&times;</button></div>
+          <div class="tab-bar">${tabBarHtml}</div>
+          <div class="tab-content">${panelsHtml}</div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+
+      // Tab switching
+      overlay.querySelector('.tab-bar').addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-tab]');
+        if (!btn) return;
+        const idx = btn.dataset.tab;
+        overlay.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        overlay.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+        const panel = overlay.querySelector(`.tab-panel[data-panel="${idx}"]`);
+        if (panel) panel.style.display = 'block';
+      });
+
+      // Close handlers
+      overlay.querySelector('.modal-close').addEventListener('click', closeParseModal);
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) closeParseModal(); });
+      overlay._escHandler = (e) => { if (e.key === 'Escape') closeParseModal(); };
+      document.addEventListener('keydown', overlay._escHandler);
+    }
+
+    function closeParseModal() {
+      const modal = document.getElementById('parse-modal');
+      if (modal) {
+        if (modal._escHandler) document.removeEventListener('keydown', modal._escHandler);
+        modal.remove();
+      }
+    }
+
+    // --- Parse Render Helpers ---
+    function renderConfigTable(body) {
+      const keys = ['model', 'max_tokens', 'temperature', 'top_p', 'top_k', 'stream', 'stop_sequences', 'metadata'];
+      const rows = keys.filter(k => body[k] !== undefined).map(k => {
+        const val = body[k];
+        let valHtml;
+        if (typeof val === 'object' && val !== null) {
+          valHtml = `<div class="tool-input" style="margin:0">${esc(JSON.stringify(val, null, 2))}</div>`;
+        } else {
+          valHtml = esc(String(val));
+        }
+        return `<tr><td>${esc(k)}</td><td style="white-space:normal">${valHtml}</td></tr>`;
+      }).join('');
+      return rows ? `<table class="kv-table">${rows}</table>` : '<div style="color:#aaa">无配置</div>';
+    }
+
+    function makeCollapsible(title, contentHtml, defaultCollapsed) {
+      const collapsed = defaultCollapsed ? ' collapsed' : '';
+      return `<div class="collapsible-wrap">
+        <div class="collapsible-header${collapsed}" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed')">
+          <span class="collapsible-arrow">▼</span><span class="collapsible-title">${title}</span>
+        </div>
+        <div class="collapsible-body${collapsed}">${contentHtml}</div>
+      </div>`;
+    }
+
+    function renderSystemPrompt(system) {
+      if (!system) return '<div style="color:#aaa">无系统提示</div>';
+      if (typeof system === 'string') {
+        return makeCollapsible(`System Prompt (1)`, `<div class="parse-card"><div class="parse-text">${esc(system)}</div></div>`);
+      }
+      if (Array.isArray(system)) {
+        const inner = system.map((block, i) => {
+          if (block.type === 'text') return makeCollapsible(`System Block ${i + 1}`, `<div class="parse-card"><div class="parse-text">${esc(block.text || '')}</div></div>`);
+          return makeCollapsible(`System Block ${i + 1}`, `<div class="parse-card"><div class="parse-text">${esc(JSON.stringify(block, null, 2))}</div></div>`);
+        }).join('');
+        return inner;
+      }
+      return makeCollapsible('System Prompt (1)', `<div class="parse-card"><div class="parse-text">${esc(JSON.stringify(system, null, 2))}</div></div>`);
+    }
+
+    function renderMessages(messages) {
+      if (!messages || messages.length === 0) return '<div style="color:#aaa">无消息</div>';
+      return messages.map((msg, i) => {
+        const roleClass = msg.role === 'user' ? 'user' : msg.role === 'assistant' ? 'assistant' : 'system';
+        const contentPreview = typeof msg.content === 'string'
+          ? msg.content.slice(0, 60).replace(/\n/g, ' ')
+          : Array.isArray(msg.content) ? `${msg.content.length} block(s)` : '';
+        let contentHtml = '';
+        if (typeof msg.content === 'string') {
+          contentHtml = `<div class="parse-text">${esc(msg.content)}</div>`;
+        } else if (Array.isArray(msg.content)) {
+          contentHtml = msg.content.map(block => {
+            if (block.type === 'text') return `<div class="parse-card"><span class="role-badge assistant">Text</span><div class="parse-text" style="margin-top:6px">${esc(block.text || '')}</div></div>`;
+            if (block.type === 'thinking') return `<div class="parse-card" style="background:#f0f0f0"><span class="role-badge system">Thinking</span><div class="parse-text" style="margin-top:6px">${esc(block.thinking || '')}</div></div>`;
+            if (block.type === 'image') return `<div class="parse-card"><span class="role-badge system">Image</span> ${esc(block.source?.type || 'image')}</div>`;
+            if (block.type === 'tool_use') return `<div class="parse-card"><span class="role-badge assistant">Tool Use</span> <b>${esc(block.name || '')}</b><div class="tool-input" style="margin-top:6px">${esc(JSON.stringify(block.input, null, 2))}</div></div>`;
+            if (block.type === 'tool_result') return `<div class="parse-card"><span class="role-badge user">Tool Result</span>${block.is_error ? ' <span style="color:#c5221f">Error</span>' : ''}<div class="tool-input" style="margin-top:6px">${esc(typeof block.content === 'string' ? block.content : JSON.stringify(block.content, null, 2))}</div></div>`;
+            return `<div class="parse-card"><div class="tool-input">${esc(JSON.stringify(block, null, 2))}</div></div>`;
+          }).join('');
+        }
+        return makeCollapsible(
+          `<span class="role-badge ${roleClass}">${esc(msg.role)}</span> ${esc(contentPreview)}`,
+          contentHtml,
+          false
+        );
+      }).join('');
+    }
+
+    function renderContentBlocks(content, rawStr) {
+      if (!content || content.length === 0) {
+        return '<div style="color:#aaa">无内容块</div>';
+      }
+      let textIdx = 0, toolIdx = 0;
+      const tabs = [];
+      for (const block of content) {
+        let label, html;
+        if (block.type === 'text') {
+          textIdx++;
+          label = `文本 ${textIdx}`;
+          html = `<div class="parse-card"><div class="parse-text">${esc(block.text || '')}</div></div>`;
+        } else if (block.type === 'tool_use') {
+          toolIdx++;
+          label = `工具调用 ${toolIdx}`;
+          const inputStr = typeof block.input === 'string' ? block.input : JSON.stringify(block.input, null, 2);
+          html = `<div class="content-block-card"><div class="tool-name">${esc(block.name || '')}</div><div style="font-size:11px;color:#888;margin-bottom:4px">ID: ${esc(block.id || '')}</div><div class="tool-input">${esc(inputStr)}</div></div>`;
+        } else if (block.type === 'thinking') {
+          label = `思考`;
+          html = `<div class="parse-card" style="background:#f0f0f0"><div style="font-size:11px;color:#888;margin-bottom:6px">Thinking</div><div class="parse-text">${esc(block.thinking || '')}</div></div>`;
+        } else {
+          label = block.type || 'Block';
+          html = `<div class="parse-card"><div class="parse-text">${esc(JSON.stringify(block, null, 2))}</div></div>`;
+        }
+        tabs.push({ label, content: html });
+      }
+      // Add raw data tab
+      tabs.push({ label: '原始数据', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(rawStr))}</div></div>` });
+      return tabs;
+    }
+
+    function renderToolDefs(tools) {
+      if (!tools || tools.length === 0) return '';
+      const html = tools.map(t => {
+        const desc = t.description ? t.description.slice(0, 80) : '';
+        return makeCollapsible(
+          `🔧 ${esc(t.name || '')} ${desc ? '— ' + esc(desc) : ''}`,
+          `<div class="content-block-card">
+            <div class="tool-name">${esc(t.name || '')}</div>
+            <div style="font-size:12px;color:#666;margin-bottom:6px">${esc(t.description || '')}</div>
+            <div class="tool-input">${esc(JSON.stringify(t.input_schema || {}, null, 2))}</div>
+          </div>`,
+          true
+        );
+      }).join('');
+      return { label: `工具定义 (${tools.length})`, content: html };
+    }
+
+    function handleParseRequest() {
+      const msg = currentDetailMsg;
+      if (!msg || !msg.requestBody) return;
+      const body = parseAnthropicRequest(msg.requestBody);
+      if (!body) {
+        openParseModal('请求解析', [
+          { label: '原始数据', content: `<div class="parse-fallback">无法解析为 Anthropic 格式</div><div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` }
+        ]);
+        return;
+      }
+      const tabs = [];
+      tabs.push({ label: '模型配置', content: renderConfigTable(body) });
+      const sysCount = body.system ? (Array.isArray(body.system) ? body.system.length : 1) : 0;
+      tabs.push({ label: `系统提示 (${sysCount})`, content: renderSystemPrompt(body.system) });
+      tabs.push({ label: `对话消息 (${(body.messages || []).length})`, content: renderMessages(body.messages) });
+      const toolTab = renderToolDefs(body.tools);
+      if (toolTab) tabs.push(toolTab);
+      tabs.push({ label: '原始数据', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` });
+      openParseModal('请求解析', tabs);
+    }
+
+    function handleParseResponse() {
+      const msg = currentDetailMsg;
+      if (!msg) return;
+
+      if (msg.isSSE && msg.sseChunks && msg.sseChunks.length > 0) {
+        // SSE: reconstruct then display like non-SSE
+        const reconstructed = reconstructSSEMessage(msg.sseChunks);
+        const overviewHtml = `
+          <table class="kv-table">
+            <tr><td>ID</td><td>${esc(reconstructed.id || '-')}</td></tr>
+            <tr><td>Model</td><td>${esc(reconstructed.model || '-')}</td></tr>
+            <tr><td>Stop Reason</td><td>${esc(reconstructed.stopReason || (reconstructed.isComplete ? '' : '流未完成'))}</td></tr>
+            <tr><td>Input Tokens</td><td>${reconstructed.usage.inputTokens || '-'}</td></tr>
+            <tr><td>Output Tokens</td><td>${reconstructed.usage.outputTokens || '-'}</td></tr>
+          </table>
+        `;
+        const contentTabs = renderContentBlocks(reconstructed.content, msg.responseBody);
+        const allTabs = [{ label: '消息概览', content: overviewHtml }, ...contentTabs];
+        // Add raw SSE events tab
+        const rawEvents = parseSSEChunks(msg.sseChunks);
+        const rawEventsHtml = rawEvents.map((evt, i) =>
+          `<div style="margin-bottom:6px"><span style="color:#888;font-size:11px">[${i + 1}]</span> <span style="color:#1a73e8;font-size:11px">${esc(evt.event)}</span><div class="parse-text" style="margin-top:2px">${esc(JSON.stringify(evt.data, null, 2))}</div></div>`
+        ).join('');
+        // Replace the generic "原始数据" tab with SSE-specific raw events
+        allTabs[allTabs.length - 1] = { label: 'SSE 事件流', content: rawEventsHtml };
+        openParseModal('响应解析 (SSE)', allTabs);
+      } else {
+        // Non-SSE response
+        const rawBody = msg.responseBody || '';
+        const parsed = parseAnthropicResponse(rawBody);
+        if (!parsed) {
+          openParseModal('响应解析', [
+            { label: '原始数据', content: `<div class="parse-fallback">无法解析为 Anthropic 格式</div><div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(rawBody))}</div></div>` }
+          ]);
+          return;
+        }
+        const overviewHtml = `
+          <table class="kv-table">
+            <tr><td>ID</td><td>${esc(parsed.id || '-')}</td></tr>
+            <tr><td>Model</td><td>${esc(parsed.model || '-')}</td></tr>
+            <tr><td>Stop Reason</td><td>${esc(parsed.stopReason || '-')}</td></tr>
+            <tr><td>Input Tokens</td><td>${parsed.usage.inputTokens || '-'}</td></tr>
+            <tr><td>Output Tokens</td><td>${parsed.usage.outputTokens || '-'}</td></tr>
+          </table>
+        `;
+        const contentTabs = renderContentBlocks(parsed.content, rawBody);
+        const allTabs = [{ label: '消息概览', content: overviewHtml }, ...contentTabs];
+        openParseModal('响应解析', allTabs);
+      }
+    }
 
     // --- Init ---
     fetchAllMessages().then(() => {
