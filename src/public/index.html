@@ -618,8 +618,7 @@
       if (hasRes) actionsHtml += `<button class="section-tab${defaultSection === 'res' ? ' active' : ''}" data-section="res">响应<span class="tab-model">${esc(resModel)}</span></button>`;
       if (hasReq || hasRes) {
         actionsHtml += `<span style="width:1px;height:20px;background:#e0e0e0;margin:0 6px"></span>`;
-        actionsHtml += `<button class="toolbar-btn" data-action="expand">全部展开</button>`;
-        actionsHtml += `<button class="toolbar-btn" data-action="collapse">全部收起</button>`;
+        actionsHtml += `<button class="toolbar-btn" data-action="toggle-collapse">全部展开</button>`;
       }
       elActions.innerHTML = actionsHtml;
       elActions.style.display = '';
@@ -797,6 +796,9 @@
         elDetailContent.querySelectorAll('.parse-section').forEach(s => s.style.display = 'none');
         const target = elDetailContent.querySelector(`.parse-section[data-section="${section}"]`);
         if (target) target.style.display = 'flex';
+        // Reset toggle button since switched section's content is all collapsed
+        const toggleBtn = elDetailActions.querySelector('.toolbar-btn[data-action="toggle-collapse"]');
+        if (toggleBtn) toggleBtn.textContent = '全部展开';
         return;
       }
 
@@ -805,23 +807,26 @@
       if (!toolbarBtn) return;
       const action = toolbarBtn.dataset.action;
 
-      if (action === 'expand' || action === 'collapse') {
+      if (action === 'toggle-collapse') {
         const activeSection = elDetailContent.querySelector('.parse-section[style*="flex"]');
         if (!activeSection) return;
         const activePanel = activeSection.querySelector('.tab-panel[style*="block"]');
         if (!activePanel) return;
-        activePanel.querySelectorAll('.collapsible-wrap').forEach(wrap => {
+        const wraps = activePanel.querySelectorAll('.collapsible-wrap');
+        const allCollapsed = [...wraps].every(w => w.querySelector('.collapsible-header').classList.contains('collapsed'));
+        wraps.forEach(wrap => {
           const header = wrap.querySelector('.collapsible-header');
           const body = wrap.querySelector('.collapsible-body');
           if (!header || !body) return;
-          if (action === 'collapse') {
-            header.classList.add('collapsed');
-            body.classList.add('collapsed');
-          } else {
+          if (allCollapsed) {
             header.classList.remove('collapsed');
             body.classList.remove('collapsed');
+          } else {
+            header.classList.add('collapsed');
+            body.classList.add('collapsed');
           }
         });
+        toolbarBtn.textContent = allCollapsed ? '全部收起' : '全部展开';
       }
     });
 
@@ -837,6 +842,9 @@
       section.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
       const panel = section.querySelector(`.tab-panel[data-panel="${idx}"]`);
       if (panel) panel.style.display = 'block';
+      // Reset toggle button since new tab's content is all collapsed
+      const toggleBtn = document.querySelector('.toolbar-btn[data-action="toggle-collapse"]');
+      if (toggleBtn) toggleBtn.textContent = '全部展开';
     });
 
     elBtnToggle.addEventListener('click', () => {
@@ -1198,17 +1206,17 @@
     function renderSystemPrompt(system) {
       if (!system) return '<div style="color:#aaa">无系统提示</div>';
       if (typeof system === 'string') {
-        return makeCollapsible(`System Prompt (1)`, `<div class="parse-card"><div class="parse-text">${esc(system)}</div></div>`, false, system);
+        return makeCollapsible(`System Prompt (1)`, `<div class="parse-card"><div class="parse-text">${esc(system)}</div></div>`, true, system);
       }
       if (Array.isArray(system)) {
         const inner = system.map((block, i) => {
           const text = block.type === 'text' ? (block.text || '') : JSON.stringify(block, null, 2);
-          if (block.type === 'text') return makeCollapsible(`System Block ${i + 1}`, `<div class="parse-card"><div class="parse-text">${esc(block.text || '')}</div></div>`, false, text);
-          return makeCollapsible(`System Block ${i + 1}`, `<div class="parse-card"><div class="parse-text">${esc(JSON.stringify(block, null, 2))}</div></div>`, false, text);
+          if (block.type === 'text') return makeCollapsible(`System Block ${i + 1}`, `<div class="parse-card"><div class="parse-text">${esc(block.text || '')}</div></div>`, true, text);
+          return makeCollapsible(`System Block ${i + 1}`, `<div class="parse-card"><div class="parse-text">${esc(JSON.stringify(block, null, 2))}</div></div>`, true, text);
         }).join('');
         return inner;
       }
-      return makeCollapsible('System Prompt (1)', `<div class="parse-card"><div class="parse-text">${esc(JSON.stringify(system, null, 2))}</div></div>`, false, JSON.stringify(system, null, 2));
+      return makeCollapsible('System Prompt (1)', `<div class="parse-card"><div class="parse-text">${esc(JSON.stringify(system, null, 2))}</div></div>`, true, JSON.stringify(system, null, 2));
     }
 
     function renderMessages(messages) {
@@ -1240,7 +1248,7 @@
         return makeCollapsible(
           `<span class="role-badge ${roleClass}">${esc(msg.role)}</span> ${esc(contentPreview)}`,
           contentHtml,
-          false,
+          true,
           copyText
         );
       }).join('');
