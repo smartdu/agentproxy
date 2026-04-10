@@ -652,7 +652,14 @@
         `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`
       ).join('');
       const reqHeadersCopy = Object.entries(msg.requestHeaders || {}).map(([k, v]) => `${k}: ${v}`).join('\n');
-      const body = parseAnthropicRequest(msg.requestBody);
+
+      let body = parseAnthropicRequest(msg.requestBody);
+      let format = 'anthropic';
+      if (!body) {
+        body = parseOpenAIRequest(msg.requestBody);
+        if (body) format = 'openai';
+      }
+
       if (!body) {
         return {
           model: '无法解析',
@@ -663,12 +670,24 @@
         };
       }
       const tabs = [];
-      tabs.push({ label: '模型配置', content: renderConfigTable(body) });
-      const sysCount = body.system ? (Array.isArray(body.system) ? body.system.length : 1) : 0;
-      tabs.push({ label: `系统提示 (${sysCount})`, content: renderSystemPrompt(body.system) });
-      tabs.push({ label: `对话消息 (${(body.messages || []).length})`, content: renderMessages(body.messages) });
-      const toolTab = renderToolDefs(body.tools);
-      if (toolTab) tabs.push(toolTab);
+
+      if (format === 'openai') {
+        tabs.push({ label: '模型配置', content: renderConfigTable(body, 'openai') });
+        const systemPrompt = extractOpenAISystemPrompt(body.messages);
+        tabs.push({ label: `系统提示 (${systemPrompt ? systemPrompt.length : 0})`, content: renderSystemPrompt(systemPrompt) });
+        const nonSystemMsgs = (body.messages || []).filter(m => m.role !== 'system');
+        tabs.push({ label: `对话消息 (${nonSystemMsgs.length})`, content: renderMessages(normalizeOpenAIMessages(nonSystemMsgs)) });
+        const toolTab = renderToolDefs(body.tools, 'openai');
+        if (toolTab) tabs.push(toolTab);
+      } else {
+        tabs.push({ label: '模型配置', content: renderConfigTable(body) });
+        const sysCount = body.system ? (Array.isArray(body.system) ? body.system.length : 1) : 0;
+        tabs.push({ label: `系统提示 (${sysCount})`, content: renderSystemPrompt(body.system) });
+        tabs.push({ label: `对话消息 (${(body.messages || []).length})`, content: renderMessages(body.messages) });
+        const toolTab = renderToolDefs(body.tools);
+        if (toolTab) tabs.push(toolTab);
+      }
+
       tabs.push({ label: '请求 Headers', content: `${copyBtn(reqHeadersCopy)}<table class="kv-table">${reqHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>` });
       tabs.push({ label: '请求 Body', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto">${copyBtn(tryFormatJSON(msg.requestBody))}<div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` });
       return { model: body.model || '', tabs };
@@ -682,7 +701,15 @@
       const resHeadersTab = { label: '响应 Headers', content: `${copyBtn(resHeadersCopy)}<table class="kv-table">${resHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>` };
 
       if (msg.isSSE && msg.sseChunks && msg.sseChunks.length > 0) {
-        const reconstructed = reconstructSSEMessage(msg.sseChunks);
+        const sseFormat = detectSSEFormat(msg.sseChunks);
+        let reconstructed, rawEvents;
+        if (sseFormat === 'openai') {
+          reconstructed = reconstructOpenAISSEMessage(msg.sseChunks);
+          rawEvents = parseOpenAISSEChunks(msg.sseChunks);
+        } else {
+          reconstructed = reconstructSSEMessage(msg.sseChunks);
+          rawEvents = parseSSEChunks(msg.sseChunks);
+        }
         const overviewHtml = `
           <table class="kv-table">
             <tr><td>ID</td><td>${esc(reconstructed.id || '-')}</td></tr>
@@ -694,9 +721,8 @@
         `;
         const contentTabs = renderContentBlocks(reconstructed.content, msg.responseBody);
         const allTabs = [{ label: '消息概览', content: overviewHtml }, ...contentTabs];
-        const rawEvents = parseSSEChunks(msg.sseChunks);
         const rawEventsHtml = rawEvents.map((evt, i) =>
-          `<div style="margin-bottom:6px"><span style="color:#888;font-size:11px">[${i + 1}]</span> <span style="color:#1a73e8;font-size:11px">${esc(evt.event)}</span><div class="parse-text" style="margin-top:2px">${esc(JSON.stringify(evt.data, null, 2))}</div></div>`
+          `<div style="margin-bottom:6px"><span style="color:#888;font-size:11px">[${i + 1}]</span> <span style="color:#1a73e8;font-size:11px">${esc(evt.event)}</span><div class="parse-text" style="margin-top:2px">${esc(typeof evt.data === 'string' ? evt.data : JSON.stringify(evt.data, null, 2))}</div></div>`
         ).join('');
         allTabs[allTabs.length - 1] = { label: 'SSE 事件流', content: rawEventsHtml };
         allTabs.push(resHeadersTab);
@@ -704,13 +730,14 @@
         return { model: 'SSE', tabs: allTabs };
       } else if (msg.responseBody) {
         const rawBody = msg.responseBody;
-        const parsed = parseAnthropicResponse(rawBody);
+        let parsed = parseAnthropicResponse(rawBody);
+        if (!parsed) parsed = parseOpenAIResponse(rawBody);
         if (!parsed) {
           return {
             model: '无法解析',
             tabs: [
               resHeadersTab,
-              { label: '响应 Body', content: `<div class="parse-fallback">无法解析为 Anthropic 格式</div><div class="parse-card" style="max-height:100%;overflow-y:auto">${copyBtn(tryFormatJSON(rawBody))}<div class="parse-text">${esc(tryFormatJSON(rawBody))}</div></div>` }
+              { label: '响应 Body', content: `<div class="parse-fallback">无法解析为已知格式</div><div class="parse-card" style="max-height:100%;overflow-y:auto">${copyBtn(tryFormatJSON(rawBody))}<div class="parse-text">${esc(tryFormatJSON(rawBody))}</div></div>` }
             ]
           };
         }
@@ -934,6 +961,85 @@
       return msg;
     }
 
+    function detectSSEFormat(sseChunks) {
+      if (!sseChunks || sseChunks.length === 0) return 'unknown';
+      const firstChunk = sseChunks[0].data;
+      if (firstChunk.includes('event:')) return 'anthropic';
+      if (/data:\s*\{/.test(firstChunk) && firstChunk.includes('"choices"')) return 'openai';
+      const allData = sseChunks.map(c => c.data).join('\n');
+      if (allData.includes('[DONE]')) return 'openai';
+      return 'unknown';
+    }
+
+    function reconstructOpenAISSEMessage(sseChunks) {
+      const allData = sseChunks.map(c => c.data).join('\n');
+      const lines = allData.split('\n');
+      const msg = { id: '', model: '', role: 'assistant', content: [], stopReason: '', usage: {}, isComplete: false };
+      let textContent = '';
+      const toolCallsMap = {};
+      let hasToolCalls = false;
+
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        const dataStr = line.slice(5).trim();
+        if (dataStr === '[DONE]') { msg.isComplete = true; continue; }
+        try {
+          const chunk = JSON.parse(dataStr);
+          if (chunk.id) msg.id = chunk.id;
+          if (chunk.model) msg.model = chunk.model;
+          if (!chunk.choices || chunk.choices.length === 0) continue;
+          const choice = chunk.choices[0];
+          const delta = choice.delta || {};
+          if (delta.role) msg.role = delta.role;
+          if (delta.content !== null && delta.content !== undefined) {
+            textContent += delta.content;
+          }
+          if (delta.tool_calls) {
+            hasToolCalls = true;
+            for (const tc of delta.tool_calls) {
+              const idx = tc.index !== undefined ? tc.index : 0;
+              if (!toolCallsMap[idx]) toolCallsMap[idx] = { id: '', name: '', arguments: '' };
+              if (tc.id) toolCallsMap[idx].id = tc.id;
+              if (tc.function) {
+                if (tc.function.name) toolCallsMap[idx].name += tc.function.name;
+                if (tc.function.arguments) toolCallsMap[idx].arguments += tc.function.arguments;
+              }
+            }
+          }
+          if (choice.finish_reason) msg.stopReason = mapFinishReason(choice.finish_reason);
+          if (chunk.usage) {
+            msg.usage.inputTokens = chunk.usage.prompt_tokens || 0;
+            msg.usage.outputTokens = chunk.usage.completion_tokens || 0;
+          }
+        } catch { /* skip malformed */ }
+      }
+
+      if (textContent) msg.content.push({ type: 'text', text: textContent });
+      if (hasToolCalls) {
+        const indices = Object.keys(toolCallsMap).map(Number).sort((a, b) => a - b);
+        for (const idx of indices) {
+          const tc = toolCallsMap[idx];
+          let input = {};
+          try { input = JSON.parse(tc.arguments || '{}'); } catch { input = tc.arguments; }
+          msg.content.push({ type: 'tool_use', id: tc.id, name: tc.name, input });
+        }
+      }
+      return msg;
+    }
+
+    function parseOpenAISSEChunks(sseChunks) {
+      const chunks = [];
+      const allData = sseChunks.map(c => c.data).join('\n');
+      for (const line of allData.split('\n')) {
+        if (!line.startsWith('data:')) continue;
+        const dataStr = line.slice(5).trim();
+        if (dataStr === '[DONE]') { chunks.push({ event: 'done', data: '[DONE]' }); continue; }
+        try { chunks.push({ event: 'delta', data: JSON.parse(dataStr) }); }
+        catch { chunks.push({ event: 'delta', data: dataStr }); }
+      }
+      return chunks;
+    }
+
     function parseAnthropicRequest(bodyStr) {
       try {
         const body = JSON.parse(bodyStr);
@@ -965,14 +1071,95 @@
       }
     }
 
+    // --- OpenAI Format Parsers ---
+    function parseOpenAIRequest(bodyStr) {
+      try {
+        const body = JSON.parse(bodyStr);
+        if (!Array.isArray(body.messages) || !body.model) return null;
+        if (body.system !== undefined || body.type !== undefined) return null;
+        return { ...body, _openai: true };
+      } catch { return null; }
+    }
+
+    function mapFinishReason(reason) {
+      const map = { stop: 'end_turn', length: 'max_tokens', tool_calls: 'tool_use', content_filter: 'content_filter' };
+      return map[reason] || reason || '';
+    }
+
+    function normalizeOpenAIContent(message) {
+      const content = [];
+      if (message.content) {
+        content.push({ type: 'text', text: message.content });
+      }
+      if (message.tool_calls && message.tool_calls.length > 0) {
+        for (const tc of message.tool_calls) {
+          let input = {};
+          try { input = JSON.parse(tc.function.arguments || '{}'); } catch { input = tc.function.arguments || ''; }
+          content.push({ type: 'tool_use', id: tc.id || '', name: tc.function.name || '', input });
+        }
+      }
+      return content;
+    }
+
+    function parseOpenAIResponse(bodyStr) {
+      try {
+        const body = JSON.parse(bodyStr);
+        if (!body.choices || !body.object || !body.object.includes('chat.completion')) return null;
+        const choice = body.choices[0];
+        if (!choice || !choice.message) return null;
+        const content = normalizeOpenAIContent(choice.message);
+        return {
+          id: body.id || '',
+          model: body.model || '',
+          role: choice.message.role || 'assistant',
+          content,
+          stopReason: mapFinishReason(choice.finish_reason),
+          usage: {
+            inputTokens: body.usage?.prompt_tokens || 0,
+            outputTokens: body.usage?.completion_tokens || 0,
+          },
+          isComplete: true,
+        };
+      } catch { return null; }
+    }
+
+    function normalizeOpenAIMessages(messages) {
+      if (!messages) return [];
+      return messages.map(msg => {
+        if (msg.role === 'tool') {
+          return { role: 'tool', content: [{ type: 'tool_result', tool_use_id: msg.tool_call_id, content: msg.content || '' }] };
+        }
+        if (msg.tool_calls && msg.tool_calls.length > 0) {
+          const content = [];
+          if (msg.content) content.push({ type: 'text', text: msg.content });
+          for (const tc of msg.tool_calls) {
+            let input = {};
+            try { input = JSON.parse(tc.function.arguments || '{}'); } catch { input = tc.function.arguments || ''; }
+            content.push({ type: 'tool_use', id: tc.id || '', name: tc.function.name || '', input });
+          }
+          return { role: msg.role, content };
+        }
+        return { role: msg.role, content: msg.content };
+      });
+    }
+
+    function extractOpenAISystemPrompt(messages) {
+      if (!messages) return null;
+      const systemMsgs = messages.filter(m => m.role === 'system');
+      if (systemMsgs.length === 0) return null;
+      return systemMsgs.map(m => ({ type: 'text', text: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) }));
+    }
+
     // --- Parse Render Helpers ---
     function copyBtn(text) {
       const encoded = btoa(unescape(encodeURIComponent(text)));
       return `<button class="inline-copy" data-copy-b64="${encoded}" title="复制">⧉</button>`;
     }
 
-    function renderConfigTable(body) {
-      const keys = ['model', 'max_tokens', 'temperature', 'top_p', 'top_k', 'stream', 'stop_sequences', 'metadata'];
+    function renderConfigTable(body, format) {
+      const keys = format === 'openai'
+        ? ['model', 'max_tokens', 'temperature', 'top_p', 'stream', 'stop', 'n', 'presence_penalty', 'frequency_penalty']
+        : ['model', 'max_tokens', 'temperature', 'top_p', 'top_k', 'stream', 'stop_sequences', 'metadata'];
       const rows = keys.filter(k => body[k] !== undefined).map(k => {
         const val = body[k];
         let valHtml;
@@ -1017,7 +1204,7 @@
     function renderMessages(messages) {
       if (!messages || messages.length === 0) return '<div style="color:#aaa">无消息</div>';
       return messages.map((msg, i) => {
-        const roleClass = msg.role === 'user' ? 'user' : msg.role === 'assistant' ? 'assistant' : 'system';
+        const roleClass = msg.role === 'user' ? 'user' : msg.role === 'assistant' ? 'assistant' : msg.role === 'tool' ? 'user' : 'system';
         const contentPreview = typeof msg.content === 'string'
           ? msg.content.slice(0, 60).replace(/\n/g, ' ')
           : Array.isArray(msg.content) ? `${msg.content.length} block(s)` : '';
@@ -1084,16 +1271,19 @@
       return tabs;
     }
 
-    function renderToolDefs(tools) {
+    function renderToolDefs(tools, format) {
       if (!tools || tools.length === 0) return '';
       const html = tools.map(t => {
-        const desc = t.description ? t.description.slice(0, 80) : '';
-        const copyText = JSON.stringify(t.input_schema || {}, null, 2);
+        const toolName = format === 'openai' ? (t.function?.name || '') : (t.name || '');
+        const toolDesc = format === 'openai' ? (t.function?.description || '') : (t.description || '');
+        const schema = format === 'openai' ? (t.function?.parameters || {}) : (t.input_schema || {});
+        const desc = toolDesc ? toolDesc.slice(0, 80) : '';
+        const copyText = JSON.stringify(schema, null, 2);
         return makeCollapsible(
-          `🔧 ${esc(t.name || '')} ${desc ? '— ' + esc(desc) : ''}`,
+          `${esc(toolName)} ${desc ? '— ' + esc(desc) : ''}`,
           `<div class="content-block-card">
-            <div class="tool-name">${esc(t.name || '')}</div>
-            <div style="font-size:12px;color:#666;margin-bottom:6px">${esc(t.description || '')}</div>
+            <div class="tool-name">${esc(toolName)}</div>
+            <div style="font-size:12px;color:#666;margin-bottom:6px">${esc(toolDesc)}</div>
             <div class="tool-input">${esc(copyText)}</div>
           </div>`,
           true,
