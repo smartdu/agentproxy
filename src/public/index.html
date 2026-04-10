@@ -196,6 +196,17 @@
     }
     .parse-btn:hover { background: #e8f0fe; color: #1a73e8; border-color: #1a73e8; }
 
+    /* Inline copy icon */
+    .inline-copy {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border: none; background: none;
+      color: #999; cursor: pointer; border-radius: 3px; font-size: 12px;
+      margin-left: 4px; flex-shrink: 0; transition: all 0.15s; vertical-align: middle;
+    }
+    .inline-copy:hover { background: #e8f0fe; color: #1a73e8; }
+    .inline-copy.copied { color: #137333; }
+    .collapsible-header .inline-copy { margin-left: auto; }
+
     /* Tab bar */
     .tab-bar {
       display: flex; border-bottom: 1px solid #e0e0e0; padding: 0 16px;
@@ -642,13 +653,14 @@
       const reqHeaders = Object.entries(msg.requestHeaders || {}).map(([k, v]) =>
         `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`
       ).join('');
+      const reqHeadersCopy = Object.entries(msg.requestHeaders || {}).map(([k, v]) => `${k}: ${v}`).join('\n');
       const body = parseAnthropicRequest(msg.requestBody);
       if (!body) {
         return {
           model: '无法解析',
           tabs: [
-            { label: '请求 Headers', content: `<table class="kv-table">${reqHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>` },
-            { label: '请求 Body', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` }
+            { label: '请求 Headers', content: `${copyBtn(reqHeadersCopy)}<table class="kv-table">${reqHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>` },
+            { label: '请求 Body', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto">${copyBtn(tryFormatJSON(msg.requestBody))}<div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` }
           ]
         };
       }
@@ -659,8 +671,8 @@
       tabs.push({ label: `对话消息 (${(body.messages || []).length})`, content: renderMessages(body.messages) });
       const toolTab = renderToolDefs(body.tools);
       if (toolTab) tabs.push(toolTab);
-      tabs.push({ label: '请求 Headers', content: `<table class="kv-table">${reqHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>` });
-      tabs.push({ label: '请求 Body', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` });
+      tabs.push({ label: '请求 Headers', content: `${copyBtn(reqHeadersCopy)}<table class="kv-table">${reqHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>` });
+      tabs.push({ label: '请求 Body', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto">${copyBtn(tryFormatJSON(msg.requestBody))}<div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` });
       return { model: body.model || '', tabs };
     }
 
@@ -668,7 +680,8 @@
       const resHeaders = Object.entries(msg.responseHeaders || {}).map(([k, v]) =>
         `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`
       ).join('');
-      const resHeadersTab = { label: '响应 Headers', content: `<table class="kv-table">${resHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>` };
+      const resHeadersCopy = Object.entries(msg.responseHeaders || {}).map(([k, v]) => `${k}: ${v}`).join('\n');
+      const resHeadersTab = { label: '响应 Headers', content: `${copyBtn(resHeadersCopy)}<table class="kv-table">${resHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>` };
 
       if (msg.isSSE && msg.sseChunks && msg.sseChunks.length > 0) {
         const reconstructed = reconstructSSEMessage(msg.sseChunks);
@@ -689,7 +702,7 @@
         ).join('');
         allTabs[allTabs.length - 1] = { label: 'SSE 事件流', content: rawEventsHtml };
         allTabs.push(resHeadersTab);
-        allTabs.push({ label: '响应 Body', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(msg.responseBody))}</div></div>` });
+        allTabs.push({ label: '响应 Body', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto">${copyBtn(tryFormatJSON(msg.responseBody))}<div class="parse-text">${esc(tryFormatJSON(msg.responseBody))}</div></div>` });
         return { model: 'SSE', tabs: allTabs };
       } else if (msg.responseBody) {
         const rawBody = msg.responseBody;
@@ -699,7 +712,7 @@
             model: '无法解析',
             tabs: [
               resHeadersTab,
-              { label: '响应 Body', content: `<div class="parse-fallback">无法解析为 Anthropic 格式</div><div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(rawBody))}</div></div>` }
+              { label: '响应 Body', content: `<div class="parse-fallback">无法解析为 Anthropic 格式</div><div class="parse-card" style="max-height:100%;overflow-y:auto">${copyBtn(tryFormatJSON(rawBody))}<div class="parse-text">${esc(tryFormatJSON(rawBody))}</div></div>` }
             ]
           };
         }
@@ -715,7 +728,7 @@
         const contentTabs = renderContentBlocks(parsed.content, rawBody);
         const allTabs = [{ label: '消息概览', content: overviewHtml }, ...contentTabs];
         allTabs.push(resHeadersTab);
-        allTabs.push({ label: '响应 Body', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(rawBody))}</div></div>` });
+        allTabs.push({ label: '响应 Body', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto">${copyBtn(tryFormatJSON(rawBody))}<div class="parse-text">${esc(tryFormatJSON(rawBody))}</div></div>` });
         return { model: parsed.model || '', tabs: allTabs };
       }
       return null;
@@ -976,6 +989,11 @@
     }
 
     // --- Parse Render Helpers ---
+    function copyBtn(text) {
+      const encoded = btoa(unescape(encodeURIComponent(text)));
+      return `<button class="inline-copy" data-copy-b64="${encoded}" title="复制">⧉</button>`;
+    }
+
     function renderConfigTable(body) {
       const keys = ['model', 'max_tokens', 'temperature', 'top_p', 'top_k', 'stream', 'stop_sequences', 'metadata'];
       const rows = keys.filter(k => body[k] !== undefined).map(k => {
@@ -988,14 +1006,16 @@
         }
         return `<tr><td>${esc(k)}</td><td style="white-space:normal">${valHtml}</td></tr>`;
       }).join('');
-      return rows ? `<table class="kv-table">${rows}</table>` : '<div style="color:#aaa">无配置</div>';
+      const copyText = keys.filter(k => body[k] !== undefined).map(k => `${k}: ${typeof body[k] === 'object' ? JSON.stringify(body[k], null, 2) : body[k]}`).join('\n');
+      return rows ? `${copyBtn(copyText)}<table class="kv-table">${rows}</table>` : '<div style="color:#aaa">无配置</div>';
     }
 
-    function makeCollapsible(title, contentHtml, defaultCollapsed) {
+    function makeCollapsible(title, contentHtml, defaultCollapsed, copyText) {
       const collapsed = defaultCollapsed ? ' collapsed' : '';
+      const copyBtnHtml = copyText !== undefined ? `<button class="inline-copy" data-copy-b64="${btoa(unescape(encodeURIComponent(copyText)))}" title="复制">⧉</button>` : '';
       return `<div class="collapsible-wrap">
         <div class="collapsible-header${collapsed}" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed')">
-          <span class="collapsible-arrow">▼</span><span class="collapsible-title">${title}</span>
+          <span class="collapsible-arrow">▼</span><span class="collapsible-title">${title}</span>${copyBtnHtml}
         </div>
         <div class="collapsible-body${collapsed}">${contentHtml}</div>
       </div>`;
@@ -1004,16 +1024,17 @@
     function renderSystemPrompt(system) {
       if (!system) return '<div style="color:#aaa">无系统提示</div>';
       if (typeof system === 'string') {
-        return makeCollapsible(`System Prompt (1)`, `<div class="parse-card"><div class="parse-text">${esc(system)}</div></div>`);
+        return makeCollapsible(`System Prompt (1)`, `<div class="parse-card"><div class="parse-text">${esc(system)}</div></div>`, false, system);
       }
       if (Array.isArray(system)) {
         const inner = system.map((block, i) => {
-          if (block.type === 'text') return makeCollapsible(`System Block ${i + 1}`, `<div class="parse-card"><div class="parse-text">${esc(block.text || '')}</div></div>`);
-          return makeCollapsible(`System Block ${i + 1}`, `<div class="parse-card"><div class="parse-text">${esc(JSON.stringify(block, null, 2))}</div></div>`);
+          const text = block.type === 'text' ? (block.text || '') : JSON.stringify(block, null, 2);
+          if (block.type === 'text') return makeCollapsible(`System Block ${i + 1}`, `<div class="parse-card"><div class="parse-text">${esc(block.text || '')}</div></div>`, false, text);
+          return makeCollapsible(`System Block ${i + 1}`, `<div class="parse-card"><div class="parse-text">${esc(JSON.stringify(block, null, 2))}</div></div>`, false, text);
         }).join('');
         return inner;
       }
-      return makeCollapsible('System Prompt (1)', `<div class="parse-card"><div class="parse-text">${esc(JSON.stringify(system, null, 2))}</div></div>`);
+      return makeCollapsible('System Prompt (1)', `<div class="parse-card"><div class="parse-text">${esc(JSON.stringify(system, null, 2))}</div></div>`, false, JSON.stringify(system, null, 2));
     }
 
     function renderMessages(messages) {
@@ -1023,23 +1044,30 @@
         const contentPreview = typeof msg.content === 'string'
           ? msg.content.slice(0, 60).replace(/\n/g, ' ')
           : Array.isArray(msg.content) ? `${msg.content.length} block(s)` : '';
+        const copyText = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content, null, 2);
         let contentHtml = '';
         if (typeof msg.content === 'string') {
           contentHtml = `<div class="parse-text">${esc(msg.content)}</div>`;
         } else if (Array.isArray(msg.content)) {
           contentHtml = msg.content.map(block => {
-            if (block.type === 'text') return `<div class="parse-card"><span class="role-badge assistant">Text</span><div class="parse-text" style="margin-top:6px">${esc(block.text || '')}</div></div>`;
-            if (block.type === 'thinking') return `<div class="parse-card" style="background:#f0f0f0"><span class="role-badge system">Thinking</span><div class="parse-text" style="margin-top:6px">${esc(block.thinking || '')}</div></div>`;
+            const blockCopy = block.type === 'text' ? (block.text || '')
+              : block.type === 'thinking' ? (block.thinking || '')
+              : block.type === 'tool_use' ? JSON.stringify(block.input, null, 2)
+              : block.type === 'tool_result' ? (typeof block.content === 'string' ? block.content : JSON.stringify(block.content, null, 2))
+              : JSON.stringify(block, null, 2);
+            if (block.type === 'text') return `<div class="parse-card"><span class="role-badge assistant">Text</span>${copyBtn(blockCopy)}<div class="parse-text" style="margin-top:6px">${esc(block.text || '')}</div></div>`;
+            if (block.type === 'thinking') return `<div class="parse-card" style="background:#f0f0f0"><span class="role-badge system">Thinking</span>${copyBtn(blockCopy)}<div class="parse-text" style="margin-top:6px">${esc(block.thinking || '')}</div></div>`;
             if (block.type === 'image') return `<div class="parse-card"><span class="role-badge system">Image</span> ${esc(block.source?.type || 'image')}</div>`;
-            if (block.type === 'tool_use') return `<div class="parse-card"><span class="role-badge assistant">Tool Use</span> <b>${esc(block.name || '')}</b><div class="tool-input" style="margin-top:6px">${esc(JSON.stringify(block.input, null, 2))}</div></div>`;
-            if (block.type === 'tool_result') return `<div class="parse-card"><span class="role-badge user">Tool Result</span>${block.is_error ? ' <span style="color:#c5221f">Error</span>' : ''}<div class="tool-input" style="margin-top:6px">${esc(typeof block.content === 'string' ? block.content : JSON.stringify(block.content, null, 2))}</div></div>`;
-            return `<div class="parse-card"><div class="tool-input">${esc(JSON.stringify(block, null, 2))}</div></div>`;
+            if (block.type === 'tool_use') return `<div class="parse-card"><span class="role-badge assistant">Tool Use</span> <b>${esc(block.name || '')}</b>${copyBtn(blockCopy)}<div class="tool-input" style="margin-top:6px">${esc(JSON.stringify(block.input, null, 2))}</div></div>`;
+            if (block.type === 'tool_result') return `<div class="parse-card"><span class="role-badge user">Tool Result</span>${block.is_error ? ' <span style="color:#c5221f">Error</span>' : ''}${copyBtn(blockCopy)}<div class="tool-input" style="margin-top:6px">${esc(typeof block.content === 'string' ? block.content : JSON.stringify(block.content, null, 2))}</div></div>`;
+            return `<div class="parse-card">${copyBtn(blockCopy)}<div class="tool-input">${esc(JSON.stringify(block, null, 2))}</div></div>`;
           }).join('');
         }
         return makeCollapsible(
           `<span class="role-badge ${roleClass}">${esc(msg.role)}</span> ${esc(contentPreview)}`,
           contentHtml,
-          false
+          false,
+          copyText
         );
       }).join('');
     }
@@ -1051,23 +1079,26 @@
       let textIdx = 0, toolIdx = 0, thinkIdx = 0;
       const tabs = [];
       for (const block of content) {
-        let label, html;
+        let label, html, copyText;
         if (block.type === 'text') {
           textIdx++;
           label = `文本 ${textIdx}`;
-          html = `<div class="parse-card"><span class="role-badge assistant">Text</span><div class="parse-text" style="margin-top:6px">${esc(block.text || '')}</div></div>`;
+          copyText = block.text || '';
+          html = `<div class="parse-card"><span class="role-badge assistant">Text</span>${copyBtn(copyText)}<div class="parse-text" style="margin-top:6px">${esc(block.text || '')}</div></div>`;
         } else if (block.type === 'tool_use') {
           toolIdx++;
           label = `工具调用 ${toolIdx}`;
-          const inputStr = typeof block.input === 'string' ? block.input : JSON.stringify(block.input, null, 2);
-          html = `<div class="parse-card"><span class="role-badge assistant">Tool Use</span> <b>${esc(block.name || '')}</b><div class="tool-input" style="margin-top:6px">${esc(inputStr)}</div></div>`;
+          copyText = typeof block.input === 'string' ? block.input : JSON.stringify(block.input, null, 2);
+          html = `<div class="parse-card"><span class="role-badge assistant">Tool Use</span> <b>${esc(block.name || '')}</b>${copyBtn(copyText)}<div class="tool-input" style="margin-top:6px">${esc(copyText)}</div></div>`;
         } else if (block.type === 'thinking') {
           thinkIdx++;
           label = `思考 ${thinkIdx}`;
-          html = `<div class="parse-card" style="background:#f0f0f0"><span class="role-badge system">Thinking</span><div class="parse-text" style="margin-top:6px">${esc(block.thinking || '')}</div></div>`;
+          copyText = block.thinking || '';
+          html = `<div class="parse-card" style="background:#f0f0f0"><span class="role-badge system">Thinking</span>${copyBtn(copyText)}<div class="parse-text" style="margin-top:6px">${esc(block.thinking || '')}</div></div>`;
         } else {
           label = block.type || 'Block';
-          html = `<div class="parse-card"><span class="role-badge system">${esc(block.type || 'Block')}</span><div class="parse-text" style="margin-top:6px">${esc(JSON.stringify(block, null, 2))}</div></div>`;
+          copyText = JSON.stringify(block, null, 2);
+          html = `<div class="parse-card"><span class="role-badge system">${esc(block.type || 'Block')}</span>${copyBtn(copyText)}<div class="parse-text" style="margin-top:6px">${esc(JSON.stringify(block, null, 2))}</div></div>`;
         }
         tabs.push({ label, content: html });
       }
@@ -1080,18 +1111,39 @@
       if (!tools || tools.length === 0) return '';
       const html = tools.map(t => {
         const desc = t.description ? t.description.slice(0, 80) : '';
+        const copyText = JSON.stringify(t.input_schema || {}, null, 2);
         return makeCollapsible(
           `🔧 ${esc(t.name || '')} ${desc ? '— ' + esc(desc) : ''}`,
           `<div class="content-block-card">
             <div class="tool-name">${esc(t.name || '')}</div>
             <div style="font-size:12px;color:#666;margin-bottom:6px">${esc(t.description || '')}</div>
-            <div class="tool-input">${esc(JSON.stringify(t.input_schema || {}, null, 2))}</div>
+            <div class="tool-input">${esc(copyText)}</div>
           </div>`,
-          true
+          true,
+          copyText
         );
       }).join('');
       return { label: `工具定义 (${tools.length})`, content: html };
     }
+
+    // --- Inline copy handler ---
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.inline-copy');
+      if (!btn) return;
+      e.stopPropagation();
+      const b64 = btn.dataset.copyB64;
+      if (!b64) return;
+      try {
+        const text = decodeURIComponent(escape(atob(b64)));
+        await navigator.clipboard.writeText(text);
+        btn.classList.add('copied');
+        btn.textContent = '✓';
+        setTimeout(() => { btn.classList.remove('copied'); btn.textContent = '⧉'; }, 1500);
+      } catch {
+        btn.textContent = '✗';
+        setTimeout(() => { btn.textContent = '⧉'; }, 1500);
+      }
+    });
 
     // --- Init ---
     fetchAllMessages().then(() => {
