@@ -991,7 +991,7 @@
       const collapsed = defaultCollapsed ? ' collapsed' : '';
       const copyBtnHtml = copyText !== undefined ? `<button class="inline-copy" data-copy-b64="${btoa(unescape(encodeURIComponent(copyText)))}" title="复制">⧉</button>` : '';
       return `<div class="collapsible-wrap">
-        <div class="collapsible-header${collapsed}" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed')">
+        <div class="collapsible-header${collapsed}">
           <span class="collapsible-arrow">▼</span><span class="collapsible-title">${title}</span>${copyBtnHtml}
         </div>
         <div class="collapsible-body${collapsed}">${contentHtml}</div>
@@ -1102,6 +1102,15 @@
       }).join('');
       return { label: `工具定义 (${tools.length})`, content: html };
     }
+
+    // --- Collapsible toggle (delegated) ---
+    elDetailContent.addEventListener('click', (e) => {
+      if (e.target.closest('.inline-copy')) return; // don't toggle on copy
+      const header = e.target.closest('.collapsible-header');
+      if (!header) return;
+      header.classList.toggle('collapsed');
+      header.nextElementSibling.classList.toggle('collapsed');
+    });
 
     // --- Inline copy handler ---
     document.addEventListener('click', async (e) => {
