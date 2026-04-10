@@ -120,8 +120,6 @@
       color: #666; border-radius: 4px; cursor: pointer; transition: all 0.15s;
     }
     .detail-actions .action-btn:hover { background: #e8f0fe; color: #1a73e8; border-color: #1a73e8; }
-    .detail-actions .action-btn.copy-action:hover { border-color: #137333; color: #137333; background: #e6f4ea; }
-    .detail-actions .action-sep { width: 1px; height: 16px; background: #e0e0e0; margin: 0 4px; }
     .detail-actions .nav-links { display: flex; gap: 4px; margin-left: auto; }
     .detail-actions .nav-link {
       font-size: 11px; padding: 2px 8px; background: none; border: 1px solid transparent;
@@ -207,7 +205,7 @@
       display: flex; align-items: center; justify-content: center;
     }
     .modal-panel {
-      background: #fff; border-radius: 8px; width: 90%; max-width: 900px;
+      background: #fff; border-radius: 8px; width: 92%; max-width: 1100px;
       height: 85vh; display: flex; flex-direction: column;
       box-shadow: 0 8px 32px rgba(0,0,0,0.2);
     }
@@ -224,6 +222,31 @@
       border-radius: 4px; padding: 2px 10px; cursor: pointer; margin-right: 12px;
     }
     .toggle-collapse-btn:hover { background: #e8f0fe; color: #1a73e8; border-color: #1a73e8; }
+
+    /* Parse modal split layout */
+    .parse-layout { display: flex; flex: 1; overflow: hidden; }
+    .parse-sidebar {
+      width: 180px; flex-shrink: 0; border-right: 1px solid #e0e0e0;
+      display: flex; flex-direction: column; background: #fafbfc;
+    }
+    .parse-sidebar-item {
+      padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+      transition: all 0.15s;
+    }
+    .parse-sidebar-item:hover { background: #eef4fd; }
+    .parse-sidebar-item.active { background: #e8f0fe; border-left: 3px solid #1a73e8; }
+    .parse-sidebar-item .sidebar-label { font-size: 13px; font-weight: bold; color: #333; }
+    .parse-sidebar-item .sidebar-sub { font-size: 11px; color: #888; margin-top: 2px; }
+    .parse-sidebar-item .sidebar-actions { display: flex; gap: 4px; margin-top: 6px; }
+    .parse-sidebar-item .sidebar-actions button {
+      font-size: 10px; padding: 1px 6px; background: #fff; border: 1px solid #ccc;
+      color: #666; border-radius: 3px; cursor: pointer;
+    }
+    .parse-sidebar-item .sidebar-actions button:hover { color: #1a73e8; border-color: #1a73e8; }
+    .parse-sidebar-item .sidebar-actions button.copy-btn:hover { color: #137333; border-color: #137333; }
+    .parse-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .parse-main .tab-bar { flex-shrink: 0; }
+    .parse-main .tab-content { flex: 1; overflow-y: auto; }
 
     /* Tab bar */
     .tab-bar {
@@ -343,11 +366,7 @@
     <div class="right-panel">
       <div class="header" id="detail-header">消息详情</div>
       <div class="detail-actions" id="detail-actions" style="display:none">
-        <button class="action-btn copy-action" data-action="copy-req">Copy 请求</button>
-        <button class="action-btn" data-action="parse-req">解析 请求</button>
-        <div class="action-sep"></div>
-        <button class="action-btn copy-action" data-action="copy-res">Copy 响应</button>
-        <button class="action-btn" data-action="parse-res">解析 响应</button>
+        <button class="action-btn" data-action="parse">解析</button>
         <div class="nav-links">
           <button class="nav-link" data-nav="sec-req-headers">Req Headers</button>
           <button class="nav-link" data-nav="sec-req-body">Req Body</button>
@@ -719,27 +738,8 @@
       const actionBtn = e.target.closest('.action-btn');
       if (actionBtn) {
         const action = actionBtn.dataset.action;
-        if (action === 'copy-req' || action === 'copy-res') {
-          const targetId = action === 'copy-req' ? 'req-body' : 'res-body';
-          const el = document.getElementById(targetId);
-          if (!el) return;
-          const text = el.textContent;
-          try {
-            await navigator.clipboard.writeText(text);
-            const orig = actionBtn.textContent;
-            actionBtn.textContent = 'Copied!';
-            actionBtn.style.color = '#137333';
-            actionBtn.style.borderColor = '#137333';
-            setTimeout(() => { actionBtn.textContent = orig; actionBtn.style.color = ''; actionBtn.style.borderColor = ''; }, 1500);
-          } catch {
-            const orig = actionBtn.textContent;
-            actionBtn.textContent = 'Failed';
-            setTimeout(() => { actionBtn.textContent = orig; }, 1500);
-          }
-        } else if (action === 'parse-req') {
-          handleParseRequest();
-        } else if (action === 'parse-res') {
-          handleParseResponse();
+        if (action === 'parse') {
+          handleParse();
         }
         return;
       }
@@ -916,39 +916,86 @@
     }
 
     // --- Modal ---
-    function openParseModal(title, tabs) {
+    function openParseModal(title, sections) {
+      // sections: [{key, label, sub, tabs: [{label, content}]}]
       closeParseModal();
       const overlay = document.createElement('div');
       overlay.className = 'modal-overlay';
       overlay.id = 'parse-modal';
 
-      const tabBarHtml = tabs.map((t, i) =>
-        `<button class="${i === 0 ? 'active' : ''}" data-tab="${i}">${esc(t.label)}</button>`
-      ).join('');
+      const sidebarHtml = sections.map((sec, i) => `
+        <div class="parse-sidebar-item${i === 0 ? ' active' : ''}" data-section="${i}">
+          <div class="sidebar-label">${esc(sec.label)}</div>
+          <div class="sidebar-sub">${esc(sec.sub || '')}</div>
+          <div class="sidebar-actions">
+            <button class="copy-btn" data-copy-target="${sec.key}">Copy</button>
+          </div>
+        </div>
+      `).join('');
 
-      const panelsHtml = tabs.map((t, i) =>
-        `<div class="tab-panel" style="display:${i === 0 ? 'block' : 'none'}" data-panel="${i}">${t.content}</div>`
-      ).join('');
+      // Pre-render all tab bars + tab contents for each section
+      const mainHtml = sections.map((sec, si) => {
+        const tabBarHtml = sec.tabs.map((t, ti) =>
+          `<button class="${ti === 0 ? 'active' : ''}" data-tab="${ti}">${esc(t.label)}</button>`
+        ).join('');
+        const panelsHtml = sec.tabs.map((t, ti) =>
+          `<div class="tab-panel" style="display:${ti === 0 ? 'block' : 'none'}" data-panel="${ti}">${t.content}</div>`
+        ).join('');
+        return `<div class="parse-main" data-main="${si}" style="display:${si === 0 ? 'flex' : 'none'}">
+          <div class="tab-bar">${tabBarHtml}</div>
+          <div class="tab-content">${panelsHtml}</div>
+        </div>`;
+      }).join('');
 
       overlay.innerHTML = `
         <div class="modal-panel">
           <div class="modal-header"><span>${esc(title)}</span><span><button class="toggle-collapse-btn" data-collapse="expand">全部展开</button><button class="toggle-collapse-btn" data-collapse="collapse">全部收起</button></span><button class="modal-close">&times;</button></div>
-          <div class="tab-bar">${tabBarHtml}</div>
-          <div class="tab-content">${panelsHtml}</div>
+          <div class="parse-layout">
+            <div class="parse-sidebar">${sidebarHtml}</div>
+            ${mainHtml}
+          </div>
         </div>
       `;
 
       document.body.appendChild(overlay);
 
-      // Tab switching
-      overlay.querySelector('.tab-bar').addEventListener('click', (e) => {
+      // Sidebar switching
+      overlay.querySelector('.parse-sidebar').addEventListener('click', (e) => {
+        const copyBtn = e.target.closest('.copy-btn');
+        if (copyBtn) {
+          const key = copyBtn.dataset.copyTarget;
+          const el = document.getElementById(key);
+          if (el) {
+            navigator.clipboard.writeText(el.textContent).then(() => {
+              const orig = copyBtn.textContent;
+              copyBtn.textContent = 'Copied!';
+              copyBtn.style.color = '#137333';
+              setTimeout(() => { copyBtn.textContent = orig; copyBtn.style.color = ''; }, 1500);
+            });
+          }
+          return;
+        }
+        const item = e.target.closest('.parse-sidebar-item');
+        if (!item) return;
+        const idx = item.dataset.section;
+        overlay.querySelectorAll('.parse-sidebar-item').forEach(it => it.classList.remove('active'));
+        item.classList.add('active');
+        overlay.querySelectorAll('.parse-main').forEach(m => m.style.display = 'none');
+        const main = overlay.querySelector(`.parse-main[data-main="${idx}"]`);
+        if (main) main.style.display = 'flex';
+      });
+
+      // Tab switching (delegated for all parse-main)
+      overlay.addEventListener('click', (e) => {
         const btn = e.target.closest('button[data-tab]');
         if (!btn) return;
+        const main = btn.closest('.parse-main');
+        if (!main) return;
         const idx = btn.dataset.tab;
-        overlay.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+        main.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        overlay.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
-        const panel = overlay.querySelector(`.tab-panel[data-panel="${idx}"]`);
+        main.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+        const panel = main.querySelector(`.tab-panel[data-panel="${idx}"]`);
         if (panel) panel.style.display = 'block';
       });
 
@@ -957,7 +1004,9 @@
         const btn = e.target.closest('.toggle-collapse-btn');
         if (!btn) return;
         const action = btn.dataset.collapse;
-        const visiblePanel = overlay.querySelector('.tab-panel[style*="block"]');
+        const visibleMain = overlay.querySelector('.parse-main[style*="flex"]');
+        if (!visibleMain) return;
+        const visiblePanel = visibleMain.querySelector('.tab-panel[style*="block"]');
         if (!visiblePanel) return;
         visiblePanel.querySelectorAll('.collapsible-wrap').forEach(wrap => {
           const header = wrap.querySelector('.collapsible-header');
@@ -1106,33 +1155,33 @@
       return { label: `工具定义 (${tools.length})`, content: html };
     }
 
-    function handleParseRequest() {
-      const msg = currentDetailMsg;
-      if (!msg || !msg.requestBody) return;
-      const body = parseAnthropicRequest(msg.requestBody);
-      if (!body) {
-        openParseModal('请求解析', [
-          { label: '原始数据', content: `<div class="parse-fallback">无法解析为 Anthropic 格式</div><div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` }
-        ]);
-        return;
-      }
-      const tabs = [];
-      tabs.push({ label: '模型配置', content: renderConfigTable(body) });
-      const sysCount = body.system ? (Array.isArray(body.system) ? body.system.length : 1) : 0;
-      tabs.push({ label: `系统提示 (${sysCount})`, content: renderSystemPrompt(body.system) });
-      tabs.push({ label: `对话消息 (${(body.messages || []).length})`, content: renderMessages(body.messages) });
-      const toolTab = renderToolDefs(body.tools);
-      if (toolTab) tabs.push(toolTab);
-      tabs.push({ label: '原始数据', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` });
-      openParseModal('请求解析', tabs);
-    }
-
-    function handleParseResponse() {
+    function handleParse() {
       const msg = currentDetailMsg;
       if (!msg) return;
+      const sections = [];
 
+      // --- Request section ---
+      if (msg.requestBody) {
+        const body = parseAnthropicRequest(msg.requestBody);
+        if (body) {
+          const tabs = [];
+          tabs.push({ label: '模型配置', content: renderConfigTable(body) });
+          const sysCount = body.system ? (Array.isArray(body.system) ? body.system.length : 1) : 0;
+          tabs.push({ label: `系统提示 (${sysCount})`, content: renderSystemPrompt(body.system) });
+          tabs.push({ label: `对话消息 (${(body.messages || []).length})`, content: renderMessages(body.messages) });
+          const toolTab = renderToolDefs(body.tools);
+          if (toolTab) tabs.push(toolTab);
+          tabs.push({ label: '原始数据', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` });
+          sections.push({ key: 'req-body', label: '请求', sub: body.model || '', tabs });
+        } else {
+          sections.push({ key: 'req-body', label: '请求', sub: '无法解析', tabs: [
+            { label: '原始数据', content: `<div class="parse-fallback">无法解析为 Anthropic 格式</div><div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` }
+          ]});
+        }
+      }
+
+      // --- Response section ---
       if (msg.isSSE && msg.sseChunks && msg.sseChunks.length > 0) {
-        // SSE: reconstruct then display like non-SSE
         const reconstructed = reconstructSSEMessage(msg.sseChunks);
         const overviewHtml = `
           <table class="kv-table">
@@ -1145,37 +1194,37 @@
         `;
         const contentTabs = renderContentBlocks(reconstructed.content, msg.responseBody);
         const allTabs = [{ label: '消息概览', content: overviewHtml }, ...contentTabs];
-        // Add raw SSE events tab
         const rawEvents = parseSSEChunks(msg.sseChunks);
         const rawEventsHtml = rawEvents.map((evt, i) =>
           `<div style="margin-bottom:6px"><span style="color:#888;font-size:11px">[${i + 1}]</span> <span style="color:#1a73e8;font-size:11px">${esc(evt.event)}</span><div class="parse-text" style="margin-top:2px">${esc(JSON.stringify(evt.data, null, 2))}</div></div>`
         ).join('');
-        // Replace the generic "原始数据" tab with SSE-specific raw events
         allTabs[allTabs.length - 1] = { label: 'SSE 事件流', content: rawEventsHtml };
-        openParseModal('响应解析 (SSE)', allTabs);
-      } else {
-        // Non-SSE response
-        const rawBody = msg.responseBody || '';
+        sections.push({ key: 'res-body', label: '响应', sub: 'SSE', tabs: allTabs });
+      } else if (msg.responseBody) {
+        const rawBody = msg.responseBody;
         const parsed = parseAnthropicResponse(rawBody);
-        if (!parsed) {
-          openParseModal('响应解析', [
+        if (parsed) {
+          const overviewHtml = `
+            <table class="kv-table">
+              <tr><td>ID</td><td>${esc(parsed.id || '-')}</td></tr>
+              <tr><td>Model</td><td>${esc(parsed.model || '-')}</td></tr>
+              <tr><td>Stop Reason</td><td>${esc(parsed.stopReason || '-')}</td></tr>
+              <tr><td>Input Tokens</td><td>${parsed.usage.inputTokens || '-'}</td></tr>
+              <tr><td>Output Tokens</td><td>${parsed.usage.outputTokens || '-'}</td></tr>
+            </table>
+          `;
+          const contentTabs = renderContentBlocks(parsed.content, rawBody);
+          const allTabs = [{ label: '消息概览', content: overviewHtml }, ...contentTabs];
+          sections.push({ key: 'res-body', label: '响应', sub: parsed.model || '', tabs: allTabs });
+        } else {
+          sections.push({ key: 'res-body', label: '响应', sub: '无法解析', tabs: [
             { label: '原始数据', content: `<div class="parse-fallback">无法解析为 Anthropic 格式</div><div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(rawBody))}</div></div>` }
-          ]);
-          return;
+          ]});
         }
-        const overviewHtml = `
-          <table class="kv-table">
-            <tr><td>ID</td><td>${esc(parsed.id || '-')}</td></tr>
-            <tr><td>Model</td><td>${esc(parsed.model || '-')}</td></tr>
-            <tr><td>Stop Reason</td><td>${esc(parsed.stopReason || '-')}</td></tr>
-            <tr><td>Input Tokens</td><td>${parsed.usage.inputTokens || '-'}</td></tr>
-            <tr><td>Output Tokens</td><td>${parsed.usage.outputTokens || '-'}</td></tr>
-          </table>
-        `;
-        const contentTabs = renderContentBlocks(parsed.content, rawBody);
-        const allTabs = [{ label: '消息概览', content: overviewHtml }, ...contentTabs];
-        openParseModal('响应解析', allTabs);
       }
+
+      if (sections.length === 0) return;
+      openParseModal('消息解析', sections);
     }
 
     // --- Init ---
