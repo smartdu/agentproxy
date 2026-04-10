@@ -200,6 +200,7 @@
     .tab-bar {
       display: flex; border-bottom: 1px solid #e0e0e0; padding: 0 16px;
       overflow-x: auto; flex-shrink: 0;
+      position: sticky; top: 0; background: #fff; z-index: 10;
     }
     .tab-bar button {
       background: none; border: none; border-bottom: 2px solid transparent;
@@ -638,11 +639,17 @@
 
     function buildRequestParsed(msg) {
       if (!msg.requestBody) return null;
+      const reqHeaders = Object.entries(msg.requestHeaders || {}).map(([k, v]) =>
+        `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`
+      ).join('');
       const body = parseAnthropicRequest(msg.requestBody);
       if (!body) {
         return {
           model: '无法解析',
-          tabs: [{ label: '原始数据', content: `<div class="parse-fallback">无法解析为 Anthropic 格式</div><div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` }]
+          tabs: [
+            { label: '请求 Headers', content: `<table class="kv-table">${reqHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>` },
+            { label: '请求 Body', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` }
+          ]
         };
       }
       const tabs = [];
@@ -652,11 +659,17 @@
       tabs.push({ label: `对话消息 (${(body.messages || []).length})`, content: renderMessages(body.messages) });
       const toolTab = renderToolDefs(body.tools);
       if (toolTab) tabs.push(toolTab);
-      tabs.push({ label: '原始数据', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` });
+      tabs.push({ label: '请求 Headers', content: `<table class="kv-table">${reqHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>` });
+      tabs.push({ label: '请求 Body', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` });
       return { model: body.model || '', tabs };
     }
 
     function buildResponseParsed(msg) {
+      const resHeaders = Object.entries(msg.responseHeaders || {}).map(([k, v]) =>
+        `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`
+      ).join('');
+      const resHeadersTab = { label: '响应 Headers', content: `<table class="kv-table">${resHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>` };
+
       if (msg.isSSE && msg.sseChunks && msg.sseChunks.length > 0) {
         const reconstructed = reconstructSSEMessage(msg.sseChunks);
         const overviewHtml = `
@@ -675,6 +688,8 @@
           `<div style="margin-bottom:6px"><span style="color:#888;font-size:11px">[${i + 1}]</span> <span style="color:#1a73e8;font-size:11px">${esc(evt.event)}</span><div class="parse-text" style="margin-top:2px">${esc(JSON.stringify(evt.data, null, 2))}</div></div>`
         ).join('');
         allTabs[allTabs.length - 1] = { label: 'SSE 事件流', content: rawEventsHtml };
+        allTabs.push(resHeadersTab);
+        allTabs.push({ label: '响应 Body', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(msg.responseBody))}</div></div>` });
         return { model: 'SSE', tabs: allTabs };
       } else if (msg.responseBody) {
         const rawBody = msg.responseBody;
@@ -682,7 +697,10 @@
         if (!parsed) {
           return {
             model: '无法解析',
-            tabs: [{ label: '原始数据', content: `<div class="parse-fallback">无法解析为 Anthropic 格式</div><div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(rawBody))}</div></div>` }]
+            tabs: [
+              resHeadersTab,
+              { label: '响应 Body', content: `<div class="parse-fallback">无法解析为 Anthropic 格式</div><div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(rawBody))}</div></div>` }
+            ]
           };
         }
         const overviewHtml = `
@@ -696,6 +714,8 @@
         `;
         const contentTabs = renderContentBlocks(parsed.content, rawBody);
         const allTabs = [{ label: '消息概览', content: overviewHtml }, ...contentTabs];
+        allTabs.push(resHeadersTab);
+        allTabs.push({ label: '响应 Body', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto"><div class="parse-text">${esc(tryFormatJSON(rawBody))}</div></div>` });
         return { model: parsed.model || '', tabs: allTabs };
       }
       return null;
