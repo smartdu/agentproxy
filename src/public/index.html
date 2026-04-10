@@ -653,12 +653,10 @@
       ).join('');
       const reqHeadersCopy = Object.entries(msg.requestHeaders || {}).map(([k, v]) => `${k}: ${v}`).join('\n');
 
-      let body = parseAnthropicRequest(msg.requestBody);
-      let format = 'anthropic';
-      if (!body) {
-        body = parseOpenAIRequest(msg.requestBody);
-        if (body) format = 'openai';
-      }
+      const format = detectFormat(msg.path);
+      let body = format === 'openai'
+        ? parseOpenAIRequest(msg.requestBody)
+        : parseAnthropicRequest(msg.requestBody);
 
       if (!body) {
         return {
@@ -701,9 +699,9 @@
       const resHeadersTab = { label: '响应 Headers', content: `${copyBtn(resHeadersCopy)}<table class="kv-table">${resHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>` };
 
       if (msg.isSSE && msg.sseChunks && msg.sseChunks.length > 0) {
-        const sseFormat = detectSSEFormat(msg.sseChunks);
+        const format = detectFormat(msg.path);
         let reconstructed, rawEvents;
-        if (sseFormat === 'openai') {
+        if (format === 'openai') {
           reconstructed = reconstructOpenAISSEMessage(msg.sseChunks);
           rawEvents = parseOpenAISSEChunks(msg.sseChunks);
         } else {
@@ -730,8 +728,12 @@
         return { model: 'SSE', tabs: allTabs };
       } else if (msg.responseBody) {
         const rawBody = msg.responseBody;
-        let parsed = parseAnthropicResponse(rawBody);
+        const format = detectFormat(msg.path);
+        let parsed = format === 'openai'
+          ? parseOpenAIResponse(rawBody)
+          : parseAnthropicResponse(rawBody);
         if (!parsed) parsed = parseOpenAIResponse(rawBody);
+        if (!parsed) parsed = parseAnthropicResponse(rawBody);
         if (!parsed) {
           return {
             model: '无法解析',
@@ -880,6 +882,8 @@
           }
         }
         if (dataStr) {
+          // Skip data: [DONE] (OpenAI-style terminator sometimes appended by Anthropic-compatible APIs)
+          if (dataStr.trim() === '[DONE]') continue;
           try {
             events.push({ event: eventName, data: JSON.parse(dataStr) });
           } catch {
@@ -926,6 +930,7 @@
             } else if (delta.type === 'thinking_delta' && currentBlock.type === 'thinking') {
               currentBlock.thinking += delta.thinking || '';
             }
+            // Ignore other delta types (signature_delta, etc.)
           }
         } else if (evt.event === 'content_block_stop') {
           if (currentBlock) {
@@ -961,13 +966,18 @@
       return msg;
     }
 
+    function detectFormat(path) {
+      return /chat\/completions/i.test(path || '') ? 'openai' : 'anthropic';
+    }
+
     function detectSSEFormat(sseChunks) {
       if (!sseChunks || sseChunks.length === 0) return 'unknown';
-      const firstChunk = sseChunks[0].data;
-      if (firstChunk.includes('event:')) return 'anthropic';
-      if (/data:\s*\{/.test(firstChunk) && firstChunk.includes('"choices"')) return 'openai';
       const allData = sseChunks.map(c => c.data).join('\n');
-      if (allData.includes('[DONE]')) return 'openai';
+      // Anthropic format has 'event:' lines (e.g. event: message_start)
+      // DeepSeek uses Anthropic format but appends 'data: [DONE]' at the end
+      if (allData.includes('event:')) return 'anthropic';
+      // OpenAI format has only 'data:' lines with 'choices' array
+      if (/data:\s*\{/.test(allData) && allData.includes('"choices"')) return 'openai';
       return 'unknown';
     }
 
