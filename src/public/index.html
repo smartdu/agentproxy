@@ -1035,25 +1035,26 @@
       if (!content || content.length === 0) {
         return '<div style="color:#aaa">无内容块</div>';
       }
-      let textIdx = 0, toolIdx = 0;
+      let textIdx = 0, toolIdx = 0, thinkIdx = 0;
       const tabs = [];
       for (const block of content) {
         let label, html;
         if (block.type === 'text') {
           textIdx++;
           label = `文本 ${textIdx}`;
-          html = `<div class="parse-card"><div class="parse-text">${esc(block.text || '')}</div></div>`;
+          html = `<div class="parse-card"><span class="role-badge assistant">Text</span><div class="parse-text" style="margin-top:6px">${esc(block.text || '')}</div></div>`;
         } else if (block.type === 'tool_use') {
           toolIdx++;
           label = `工具调用 ${toolIdx}`;
           const inputStr = typeof block.input === 'string' ? block.input : JSON.stringify(block.input, null, 2);
-          html = `<div class="content-block-card"><div class="tool-name">${esc(block.name || '')}</div><div style="font-size:11px;color:#888;margin-bottom:4px">ID: ${esc(block.id || '')}</div><div class="tool-input">${esc(inputStr)}</div></div>`;
+          html = `<div class="parse-card"><span class="role-badge assistant">Tool Use</span> <b>${esc(block.name || '')}</b><div class="tool-input" style="margin-top:6px">${esc(inputStr)}</div></div>`;
         } else if (block.type === 'thinking') {
-          label = `思考`;
-          html = `<div class="parse-card" style="background:#f0f0f0"><div style="font-size:11px;color:#888;margin-bottom:6px">Thinking</div><div class="parse-text">${esc(block.thinking || '')}</div></div>`;
+          thinkIdx++;
+          label = `思考 ${thinkIdx}`;
+          html = `<div class="parse-card" style="background:#f0f0f0"><span class="role-badge system">Thinking</span><div class="parse-text" style="margin-top:6px">${esc(block.thinking || '')}</div></div>`;
         } else {
           label = block.type || 'Block';
-          html = `<div class="parse-card"><div class="parse-text">${esc(JSON.stringify(block, null, 2))}</div></div>`;
+          html = `<div class="parse-card"><span class="role-badge system">${esc(block.type || 'Block')}</span><div class="parse-text" style="margin-top:6px">${esc(JSON.stringify(block, null, 2))}</div></div>`;
         }
         tabs.push({ label, content: html });
       }
