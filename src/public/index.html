@@ -102,6 +102,21 @@
     }
     .empty-state { padding: 40px 20px; text-align: center; color: #aaa; font-size: 14px; }
 
+    /* Hover preview tooltip */
+    .msg-preview {
+      position: fixed; z-index: 1000; max-width: 420px; min-width: 200px;
+      background: #fff; border: 1px solid #d0d0d0; border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12); padding: 10px 14px;
+      pointer-events: none; opacity: 0; transition: opacity 0.15s;
+      font-size: 12px; color: #333; white-space: pre-wrap; word-break: break-word;
+      line-height: 1.5; max-height: 300px; overflow-y: auto;
+    }
+    .msg-preview.visible { opacity: 1; }
+    .msg-preview .preview-label {
+      display: inline-block; font-size: 10px; font-weight: bold; padding: 1px 6px;
+      border-radius: 3px; background: #e6f4ea; color: #137333; margin-bottom: 6px;
+    }
+
     /* Right panel - detail */
     .right-panel {
       flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;
@@ -1338,6 +1353,72 @@
         setTimeout(() => { btn.textContent = '⧉'; }, 1500);
       }
     });
+
+    // --- Hover preview on message list ---
+    const elPreview = document.createElement('div');
+    elPreview.className = 'msg-preview';
+    document.body.appendChild(elPreview);
+
+    function extractLastUserContent(msg) {
+      if (!msg || !msg.requestBody) return null;
+      try {
+        const body = JSON.parse(msg.requestBody);
+        const messages = body.messages;
+        if (!Array.isArray(messages)) return null;
+        // Find last user message
+        for (let i = messages.length - 1; i >= 0; i--) {
+          if (messages[i].role === 'user') {
+            const content = messages[i].content;
+            if (typeof content === 'string') {
+              return content.length > 200 ? content.slice(0, 200) + '...' : content;
+            }
+            if (Array.isArray(content)) {
+              // Get last text block
+              for (let j = content.length - 1; j >= 0; j--) {
+                const block = content[j];
+                if (block.type === 'text' && block.text) {
+                  return block.text.length > 200 ? block.text.slice(0, 200) + '...' : block.text;
+                }
+              }
+              // Fallback: stringify last block
+              const last = content[content.length - 1];
+              const str = typeof last === 'string' ? last : JSON.stringify(last);
+              return str.length > 200 ? str.slice(0, 200) + '...' : str;
+            }
+            return null;
+          }
+        }
+      } catch { /* ignore */ }
+      return null;
+    }
+
+    elMsgList.addEventListener('mouseenter', (e) => {
+      const item = e.target.closest('.msg-item');
+      if (!item) return;
+      const id = item.dataset.id;
+      const msg = messages.find(m => m.id === id);
+      const text = extractLastUserContent(msg);
+      if (!text) return;
+      elPreview.innerHTML = `<div class="preview-label">User</div><div>${esc(text)}</div>`;
+      const rect = item.getBoundingClientRect();
+      let top = rect.top;
+      let left = rect.right + 8;
+      // If not enough space on right, show on left
+      if (left + 420 > window.innerWidth) {
+        left = rect.left - 8 - 200;
+        if (left < 0) left = 8;
+      }
+      // Adjust if overflows bottom
+      elPreview.style.top = top + 'px';
+      elPreview.style.left = left + 'px';
+      elPreview.classList.add('visible');
+    }, true);
+
+    elMsgList.addEventListener('mouseleave', (e) => {
+      const item = e.target.closest('.msg-item');
+      if (!item) return;
+      elPreview.classList.remove('visible');
+    }, true);
 
     // --- Init ---
     fetchAllMessages().then(() => {
