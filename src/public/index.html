@@ -68,12 +68,12 @@
       color: #666; border-radius: 4px; cursor: pointer;
     }
     .left-panel .toolbar button:hover { background: #eef4fd; color: #1a73e8; border-color: #1a73e8; }
-    .msg-list { flex: 1; overflow-y: auto; }
+    .msg-list { flex: 1; overflow-y: auto; position: relative; }
     .msg-item {
       padding: 10px 14px; border-bottom: 1px solid #f0f0f0; cursor: pointer;
       transition: background 0.15s;
     }
-    .msg-item:hover, .msg-item.preview-active { background: #ddeafd; }
+    .msg-item:hover { background: #ddeafd; }
     .msg-item.selected { background: #e8f0fe; border-left: 3px solid #1a73e8; }
     .msg-item .msg-method {
       display: inline-block; font-size: 11px; font-weight: bold; padding: 1px 6px;
@@ -101,32 +101,6 @@
       padding: 0 5px; border-radius: 3px; margin-left: 6px;
     }
     .empty-state { padding: 40px 20px; text-align: center; color: #aaa; font-size: 14px; }
-
-    /* Hover preview tooltip */
-    .msg-preview {
-      position: fixed; z-index: 1000; width: 500px; height: 400px;
-      background: #fff; border: 1px solid #d0d0d0; border-radius: 8px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.12); padding: 12px 16px;
-      pointer-events: auto; opacity: 0; transition: opacity 0.15s;
-      font-size: 12px; color: #333; white-space: pre-wrap; word-break: break-word;
-      line-height: 1.5; display: flex; flex-direction: column; overflow: hidden;
-    }
-    .msg-preview.visible { opacity: 1; }
-    .msg-preview .preview-label {
-      display: inline-block; font-size: 10px; font-weight: bold; padding: 1px 6px;
-      border-radius: 3px; margin-bottom: 6px; flex-shrink: 0;
-    }
-    .msg-preview .preview-label.user { background: #e6f4ea; color: #137333; }
-    .msg-preview .preview-label.assistant { background: #e8f0fe; color: #1a73e8; }
-    .msg-preview .preview-label.system { background: #f3e8fd; color: #7627bb; }
-    .msg-preview .preview-label.tool { background: #fef7e0; color: #b06000; }
-    .msg-preview .preview-block {
-      flex: 1; min-height: 0; display: flex; flex-direction: column;
-    }
-    .msg-preview .preview-block .preview-content {
-      flex: 1; min-height: 0; overflow-y: auto;
-    }
-    .msg-preview .preview-block + .preview-block { margin-top: 8px; padding-top: 8px; border-top: 1px solid #e8e8e8; }
 
     /* Right panel - detail */
     .right-panel {
@@ -282,6 +256,18 @@
       max-height: 300px; overflow-y: auto;
     }
     .parse-fallback { color: #b06000; font-size: 13px; padding: 20px 0; }
+
+    /* Back to top button */
+    .back-to-top {
+      position: absolute; bottom: 16px; right: 16px; z-index: 20;
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #1a73e8; color: #fff; border: none;
+      font-size: 18px; cursor: pointer; display: none;
+      align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: opacity 0.2s;
+    }
+    .back-to-top:hover { background: #1557b0; }
+    .back-to-top.visible { display: flex; }
 
     /* Collapsible */
     .collapsible-header {
@@ -628,18 +614,21 @@
         <span style="color:#999;margin-left:auto">${formatTime(msg.timestamp)} · ${formatDuration(msg.duration)}</span>
       `;
 
-      // Build request and response parsed sections
+      // Build overview, request and response parsed sections
+      const overviewParsed = buildOverview(msg);
       const reqParsed = buildRequestParsed(msg);
       const resParsed = buildResponseParsed(msg);
 
       // Build action bar: section tabs + copy + expand/collapse + nav
+      const hasOverview = !!overviewParsed;
       const hasReq = !!reqParsed;
       const hasRes = !!resParsed;
-      const defaultSection = hasReq ? 'req' : 'res';
+      const defaultSection = hasOverview ? 'overview' : hasReq ? 'req' : 'res';
       const reqModel = reqParsed ? reqParsed.model : '';
       const resModel = resParsed ? resParsed.model : '';
 
       let actionsHtml = '';
+      if (hasOverview) actionsHtml += `<button class="section-tab${defaultSection === 'overview' ? ' active' : ''}" data-section="overview">简介</button>`;
       if (hasReq) actionsHtml += `<button class="section-tab${defaultSection === 'req' ? ' active' : ''}" data-section="req">请求<span class="tab-model">${esc(reqModel)}</span></button>`;
       if (hasRes) actionsHtml += `<button class="section-tab${defaultSection === 'res' ? ' active' : ''}" data-section="res">响应<span class="tab-model">${esc(resModel)}</span></button>`;
       if (hasReq || hasRes) {
@@ -651,6 +640,7 @@
 
       // Build detail content: tab bars + tab panels for each section
       const sections = [];
+      if (overviewParsed) sections.push({ key: 'overview', tabs: overviewParsed.tabs });
       if (reqParsed) sections.push({ key: 'req', tabs: reqParsed.tabs });
       if (resParsed) sections.push({ key: 'res', tabs: resParsed.tabs });
 
@@ -662,13 +652,52 @@
         const panelsHtml = sec.tabs.map((t, ti) =>
           `<div class="tab-panel" style="display:${ti === 0 ? 'block' : 'none'}" data-panel="${ti}">${t.content}</div>`
         ).join('');
-        return `<div class="parse-section" data-section="${sec.key}" style="display:${isActive ? 'flex' : 'none'};flex-direction:column;flex:1;overflow:hidden">
+        return `<div class="parse-section" data-section="${sec.key}" style="display:${isActive ? 'flex' : 'none'};flex-direction:column;flex:1;overflow:hidden;position:relative">
           <div class="tab-bar">${tabBarHtml}</div>
           <div class="tab-content">${panelsHtml}</div>
+          <button class="back-to-top" title="回到顶部">↑</button>
         </div>`;
       }).join('');
 
       elDetailContent.innerHTML = contentHtml;
+    }
+
+    function extractLastMessages(msg) {
+      if (!msg || !msg.requestBody) return [];
+      try {
+        const body = JSON.parse(msg.requestBody);
+        const messages = body.messages;
+        if (!Array.isArray(messages) || messages.length === 0) return [];
+        const last2 = messages.slice(-2);
+        return last2.map(m => {
+          const role = m.role || 'unknown';
+          const content = m.content;
+          if (typeof content === 'string') return { role, text: content };
+          if (Array.isArray(content) && content.length > 0) {
+            for (let j = content.length - 1; j >= 0; j--) {
+              const block = content[j];
+              if (block.type === 'text' && block.text) return { role, text: block.text };
+              if (block.type === 'tool_result') return { role, text: typeof block.content === 'string' ? block.content : JSON.stringify(block.content, null, 2) };
+              if (block.type === 'tool_use') return { role, text: block.name + ': ' + (typeof block.input === 'string' ? block.input : JSON.stringify(block.input, null, 2)) };
+              if (block.type === 'thinking') return { role, text: block.thinking || '' };
+            }
+            const last = content[content.length - 1];
+            return { role, text: typeof last === 'string' ? last : JSON.stringify(last, null, 2) };
+          }
+          return { role, text: JSON.stringify(content, null, 2) };
+        });
+      } catch { /* ignore */ }
+      return [];
+    }
+
+    function buildOverview(msg) {
+      if (!msg || !msg.requestBody) return null;
+      const overviewItems = extractLastMessages(msg);
+      if (overviewItems.length === 0) return null;
+      const content = `<div style="display:flex;flex-direction:column;gap:8px">${overviewItems.map(it =>
+        `<div style="background:#f8f9fa;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden"><div style="padding:8px 12px;border-bottom:1px solid #e0e0e0"><span class="role-badge ${it.role === 'user' ? 'user' : it.role === 'assistant' ? 'assistant' : it.role === 'system' ? 'system' : 'user'}">${esc(it.role)}</span>${copyBtn(it.text)}</div><div style="max-height:300px;overflow-y:auto;padding:8px 12px"><div class="parse-text">${esc(it.text)}</div></div></div>`
+      ).join('')}</div>`;
+      return { model: '', tabs: [{ label: '最近消息', content }] };
     }
 
     function buildRequestParsed(msg) {
@@ -843,7 +872,10 @@
       const action = toolbarBtn.dataset.action;
 
       if (action === 'toggle-collapse') {
-        const activeSection = elDetailContent.querySelector('.parse-section[style*="flex"]');
+        const activeTab = elDetailActions.querySelector('.section-tab.active');
+        if (!activeTab) return;
+        const sectionKey = activeTab.dataset.section;
+        const activeSection = elDetailContent.querySelector(`.parse-section[data-section="${sectionKey}"]`);
         if (!activeSection) return;
         const activePanel = activeSection.querySelector('.tab-panel[style*="block"]');
         if (!activePanel) return;
@@ -1374,100 +1406,24 @@
       }
     });
 
-    // --- Hover preview on message list ---
-    const elPreview = document.createElement('div');
-    elPreview.className = 'msg-preview';
-    document.body.appendChild(elPreview);
-
-    function extractLastMessages(msg) {
-      if (!msg || !msg.requestBody) return [];
-      try {
-        const body = JSON.parse(msg.requestBody);
-        const messages = body.messages;
-        if (!Array.isArray(messages) || messages.length === 0) return [];
-        // Take last 2 messages
-        const last2 = messages.slice(-2);
-        return last2.map(m => {
-          const role = m.role || 'unknown';
-          const content = m.content;
-          if (typeof content === 'string') return { role, text: content };
-          if (Array.isArray(content) && content.length > 0) {
-            // Get last content block
-            for (let j = content.length - 1; j >= 0; j--) {
-              const block = content[j];
-              if (block.type === 'text' && block.text) return { role, text: block.text };
-              if (block.type === 'tool_result') return { role, text: typeof block.content === 'string' ? block.content : JSON.stringify(block.content, null, 2) };
-              if (block.type === 'tool_use') return { role, text: block.name + ': ' + (typeof block.input === 'string' ? block.input : JSON.stringify(block.input, null, 2)) };
-              if (block.type === 'thinking') return { role, text: block.thinking || '' };
-            }
-            const last = content[content.length - 1];
-            return { role, text: typeof last === 'string' ? last : JSON.stringify(last, null, 2) };
-          }
-          return { role, text: JSON.stringify(content, null, 2) };
-        });
-      } catch { /* ignore */ }
-      return [];
-    }
-
-    let previewMsgId = null;
-    let previewHideTimer = null;
-    function showPreview(item) {
-      clearTimeout(previewHideTimer);
-      const id = item.dataset.id;
-      if (id === previewMsgId) return;
-      // Remove highlight from previous item
-      const prev = elMsgList.querySelector('.msg-item.preview-active');
-      if (prev) prev.classList.remove('preview-active');
-      item.classList.add('preview-active');
-      previewMsgId = id;
-      const msg = messages.find(m => m.id === id);
-      const items = extractLastMessages(msg);
-      if (items.length === 0) { elPreview.classList.remove('visible'); previewMsgId = null; return; }
-      elPreview.innerHTML = items.map(it =>
-        `<div class="preview-block"><div class="preview-label ${esc(it.role)}">${esc(it.role)}</div><div class="preview-content">${esc(it.text)}</div></div>`
-      ).join('');
-      const rect = item.getBoundingClientRect();
-      let top = rect.top;
-      let left = rect.right + 8;
-      if (left + 500 > window.innerWidth) {
-        left = rect.left - 8 - 500;
-        if (left < 0) left = 8;
+    // --- Back to top button ---
+    elDetailContent.addEventListener('click', (e) => {
+      const btn = e.target.closest('.back-to-top');
+      if (!btn) return;
+      const section = btn.closest('.parse-section');
+      const tabContent = section?.querySelector('.tab-content');
+      if (tabContent) tabContent.scrollTop = 0;
+    });
+    elDetailContent.addEventListener('scroll', (e) => {
+      const tabContent = e.target.closest('.tab-content');
+      if (!tabContent) return;
+      const section = tabContent.closest('.parse-section');
+      const btn = section?.querySelector('.back-to-top');
+      if (btn) {
+        if (tabContent.scrollTop > 200) btn.classList.add('visible');
+        else btn.classList.remove('visible');
       }
-      if (top + 400 > window.innerHeight) {
-        top = window.innerHeight - 400 - 8;
-        if (top < 0) top = 8;
-      }
-      elPreview.style.top = top + 'px';
-      elPreview.style.left = left + 'px';
-      elPreview.classList.add('visible');
-    }
-    function hidePreview() {
-      const prev = elMsgList.querySelector('.msg-item.preview-active');
-      if (prev) prev.classList.remove('preview-active');
-      previewMsgId = null;
-      elPreview.classList.remove('visible');
-    }
-
-    elMsgList.addEventListener('mouseover', (e) => {
-      const item = e.target.closest('.msg-item');
-      if (!item) return;
-      showPreview(item);
-    });
-    elMsgList.addEventListener('mouseout', (e) => {
-      const item = e.target.closest('.msg-item');
-      if (!item) return;
-      const related = e.relatedTarget?.closest?.('.msg-item');
-      // Moving to another msg-item — don't hide, mouseover will update
-      if (related) return;
-      // Left the list — delay hide to allow mouse to move onto preview panel
-      previewHideTimer = setTimeout(() => {
-        if (!elPreview.matches(':hover')) hidePreview();
-      }, 100);
-    });
-
-    elPreview.addEventListener('mouseleave', () => {
-      hidePreview();
-    });
+    }, true);
 
     // --- Init ---
     fetchAllMessages().then(() => {
