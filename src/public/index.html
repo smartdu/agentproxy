@@ -73,7 +73,7 @@
       padding: 10px 14px; border-bottom: 1px solid #f0f0f0; cursor: pointer;
       transition: background 0.15s;
     }
-    .msg-item:hover { background: #f5f8fc; }
+    .msg-item:hover, .msg-item.preview-active { background: #ddeafd; }
     .msg-item.selected { background: #e8f0fe; border-left: 3px solid #1a73e8; }
     .msg-item .msg-method {
       display: inline-block; font-size: 11px; font-weight: bold; padding: 1px 6px;
@@ -104,18 +104,29 @@
 
     /* Hover preview tooltip */
     .msg-preview {
-      position: fixed; z-index: 1000; max-width: 420px; min-width: 200px;
+      position: fixed; z-index: 1000; width: 500px; height: 400px;
       background: #fff; border: 1px solid #d0d0d0; border-radius: 8px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.12); padding: 10px 14px;
-      pointer-events: none; opacity: 0; transition: opacity 0.15s;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12); padding: 12px 16px;
+      pointer-events: auto; opacity: 0; transition: opacity 0.15s;
       font-size: 12px; color: #333; white-space: pre-wrap; word-break: break-word;
-      line-height: 1.5; max-height: 300px; overflow-y: auto;
+      line-height: 1.5; display: flex; flex-direction: column; overflow: hidden;
     }
     .msg-preview.visible { opacity: 1; }
     .msg-preview .preview-label {
       display: inline-block; font-size: 10px; font-weight: bold; padding: 1px 6px;
-      border-radius: 3px; background: #e6f4ea; color: #137333; margin-bottom: 6px;
+      border-radius: 3px; margin-bottom: 6px; flex-shrink: 0;
     }
+    .msg-preview .preview-label.user { background: #e6f4ea; color: #137333; }
+    .msg-preview .preview-label.assistant { background: #e8f0fe; color: #1a73e8; }
+    .msg-preview .preview-label.system { background: #f3e8fd; color: #7627bb; }
+    .msg-preview .preview-label.tool { background: #fef7e0; color: #b06000; }
+    .msg-preview .preview-block {
+      flex: 1; min-height: 0; display: flex; flex-direction: column;
+    }
+    .msg-preview .preview-block .preview-content {
+      flex: 1; min-height: 0; overflow-y: auto;
+    }
+    .msg-preview .preview-block + .preview-block { margin-top: 8px; padding-top: 8px; border-top: 1px solid #e8e8e8; }
 
     /* Right panel - detail */
     .right-panel {
@@ -661,11 +672,19 @@
     }
 
     function buildRequestParsed(msg) {
-      if (!msg.requestBody) return null;
       const reqHeaders = Object.entries(msg.requestHeaders || {}).map(([k, v]) =>
         `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`
       ).join('');
       const reqHeadersCopy = Object.entries(msg.requestHeaders || {}).map(([k, v]) => `${k}: ${v}`).join('\n');
+      const reqHeadersTab = { label: '请求 Headers', content: `${copyBtn(reqHeadersCopy)}<table class="kv-table">${reqHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>` };
+      const reqBodyTab = { label: '请求 Body', content: msg.requestBody
+        ? `<div class="parse-card" style="max-height:100%;overflow-y:auto">${copyBtn(tryFormatJSON(msg.requestBody))}<div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>`
+        : '<div style="color:#aaa">无请求体</div>'
+      };
+
+      if (!msg.requestBody) {
+        return { model: '', tabs: [reqHeadersTab, reqBodyTab] };
+      }
 
       const format = detectFormat(msg.path);
       let body = format === 'openai'
@@ -673,16 +692,10 @@
         : parseAnthropicRequest(msg.requestBody);
 
       if (!body) {
-        return {
-          model: '无法解析',
-          tabs: [
-            { label: '请求 Headers', content: `${copyBtn(reqHeadersCopy)}<table class="kv-table">${reqHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>` },
-            { label: '请求 Body', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto">${copyBtn(tryFormatJSON(msg.requestBody))}<div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` }
-          ]
-        };
+        return { model: '无法解析', tabs: [reqHeadersTab, reqBodyTab] };
       }
-      const tabs = [];
 
+      const tabs = [];
       if (format === 'openai') {
         tabs.push({ label: '模型配置', content: renderConfigTable(body, 'openai') });
         const systemPrompt = extractOpenAISystemPrompt(body.messages);
@@ -700,8 +713,8 @@
         if (toolTab) tabs.push(toolTab);
       }
 
-      tabs.push({ label: '请求 Headers', content: `${copyBtn(reqHeadersCopy)}<table class="kv-table">${reqHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>` });
-      tabs.push({ label: '请求 Body', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto">${copyBtn(tryFormatJSON(msg.requestBody))}<div class="parse-text">${esc(tryFormatJSON(msg.requestBody))}</div></div>` });
+      tabs.push(reqHeadersTab);
+      tabs.push(reqBodyTab);
       return { model: body.model || '', tabs };
     }
 
@@ -711,6 +724,9 @@
       ).join('');
       const resHeadersCopy = Object.entries(msg.responseHeaders || {}).map(([k, v]) => `${k}: ${v}`).join('\n');
       const resHeadersTab = { label: '响应 Headers', content: `${copyBtn(resHeadersCopy)}<table class="kv-table">${resHeaders || '<tr><td colspan="2" style="color:#aaa">无</td></tr>'}</table>` };
+      const resBodyTab = (bodyStr) => bodyStr
+        ? { label: '响应 Body', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto">${copyBtn(tryFormatJSON(bodyStr))}<div class="parse-text">${esc(tryFormatJSON(bodyStr))}</div></div>` }
+        : { label: '响应 Body', content: '<div style="color:#aaa">无响应体</div>' };
 
       if (msg.isSSE && msg.sseChunks && msg.sseChunks.length > 0) {
         const format = detectFormat(msg.path);
@@ -738,9 +754,11 @@
         ).join('');
         allTabs[allTabs.length - 1] = { label: 'SSE 事件流', content: rawEventsHtml };
         allTabs.push(resHeadersTab);
-        allTabs.push({ label: '响应 Body', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto">${copyBtn(tryFormatJSON(msg.responseBody))}<div class="parse-text">${esc(tryFormatJSON(msg.responseBody))}</div></div>` });
+        allTabs.push(resBodyTab(msg.responseBody));
         return { model: 'SSE', tabs: allTabs };
-      } else if (msg.responseBody) {
+      }
+
+      if (msg.responseBody) {
         const rawBody = msg.responseBody;
         const format = detectFormat(msg.path);
         let parsed = format === 'openai'
@@ -769,10 +787,12 @@
         const contentTabs = renderContentBlocks(parsed.content, rawBody);
         const allTabs = [{ label: '消息概览', content: overviewHtml }, ...contentTabs];
         allTabs.push(resHeadersTab);
-        allTabs.push({ label: '响应 Body', content: `<div class="parse-card" style="max-height:100%;overflow-y:auto">${copyBtn(tryFormatJSON(rawBody))}<div class="parse-text">${esc(tryFormatJSON(rawBody))}</div></div>` });
+        allTabs.push(resBodyTab(rawBody));
         return { model: parsed.model || '', tabs: allTabs };
       }
-      return null;
+
+      // No response body (e.g. HEAD request)
+      return { model: '', tabs: [resHeadersTab, resBodyTab(null)] };
     }
 
     function esc(str) {
@@ -1359,66 +1379,95 @@
     elPreview.className = 'msg-preview';
     document.body.appendChild(elPreview);
 
-    function extractLastUserContent(msg) {
-      if (!msg || !msg.requestBody) return null;
+    function extractLastMessages(msg) {
+      if (!msg || !msg.requestBody) return [];
       try {
         const body = JSON.parse(msg.requestBody);
         const messages = body.messages;
-        if (!Array.isArray(messages)) return null;
-        // Find last user message
-        for (let i = messages.length - 1; i >= 0; i--) {
-          if (messages[i].role === 'user') {
-            const content = messages[i].content;
-            if (typeof content === 'string') {
-              return content.length > 200 ? content.slice(0, 200) + '...' : content;
+        if (!Array.isArray(messages) || messages.length === 0) return [];
+        // Take last 2 messages
+        const last2 = messages.slice(-2);
+        return last2.map(m => {
+          const role = m.role || 'unknown';
+          const content = m.content;
+          if (typeof content === 'string') return { role, text: content };
+          if (Array.isArray(content) && content.length > 0) {
+            // Get last content block
+            for (let j = content.length - 1; j >= 0; j--) {
+              const block = content[j];
+              if (block.type === 'text' && block.text) return { role, text: block.text };
+              if (block.type === 'tool_result') return { role, text: typeof block.content === 'string' ? block.content : JSON.stringify(block.content, null, 2) };
+              if (block.type === 'tool_use') return { role, text: block.name + ': ' + (typeof block.input === 'string' ? block.input : JSON.stringify(block.input, null, 2)) };
+              if (block.type === 'thinking') return { role, text: block.thinking || '' };
             }
-            if (Array.isArray(content)) {
-              // Get last text block
-              for (let j = content.length - 1; j >= 0; j--) {
-                const block = content[j];
-                if (block.type === 'text' && block.text) {
-                  return block.text.length > 200 ? block.text.slice(0, 200) + '...' : block.text;
-                }
-              }
-              // Fallback: stringify last block
-              const last = content[content.length - 1];
-              const str = typeof last === 'string' ? last : JSON.stringify(last);
-              return str.length > 200 ? str.slice(0, 200) + '...' : str;
-            }
-            return null;
+            const last = content[content.length - 1];
+            return { role, text: typeof last === 'string' ? last : JSON.stringify(last, null, 2) };
           }
-        }
+          return { role, text: JSON.stringify(content, null, 2) };
+        });
       } catch { /* ignore */ }
-      return null;
+      return [];
     }
 
-    elMsgList.addEventListener('mouseenter', (e) => {
-      const item = e.target.closest('.msg-item');
-      if (!item) return;
+    let previewMsgId = null;
+    let previewHideTimer = null;
+    function showPreview(item) {
+      clearTimeout(previewHideTimer);
       const id = item.dataset.id;
+      if (id === previewMsgId) return;
+      // Remove highlight from previous item
+      const prev = elMsgList.querySelector('.msg-item.preview-active');
+      if (prev) prev.classList.remove('preview-active');
+      item.classList.add('preview-active');
+      previewMsgId = id;
       const msg = messages.find(m => m.id === id);
-      const text = extractLastUserContent(msg);
-      if (!text) return;
-      elPreview.innerHTML = `<div class="preview-label">User</div><div>${esc(text)}</div>`;
+      const items = extractLastMessages(msg);
+      if (items.length === 0) { elPreview.classList.remove('visible'); previewMsgId = null; return; }
+      elPreview.innerHTML = items.map(it =>
+        `<div class="preview-block"><div class="preview-label ${esc(it.role)}">${esc(it.role)}</div><div class="preview-content">${esc(it.text)}</div></div>`
+      ).join('');
       const rect = item.getBoundingClientRect();
       let top = rect.top;
       let left = rect.right + 8;
-      // If not enough space on right, show on left
-      if (left + 420 > window.innerWidth) {
-        left = rect.left - 8 - 200;
+      if (left + 500 > window.innerWidth) {
+        left = rect.left - 8 - 500;
         if (left < 0) left = 8;
       }
-      // Adjust if overflows bottom
+      if (top + 400 > window.innerHeight) {
+        top = window.innerHeight - 400 - 8;
+        if (top < 0) top = 8;
+      }
       elPreview.style.top = top + 'px';
       elPreview.style.left = left + 'px';
       elPreview.classList.add('visible');
-    }, true);
+    }
+    function hidePreview() {
+      const prev = elMsgList.querySelector('.msg-item.preview-active');
+      if (prev) prev.classList.remove('preview-active');
+      previewMsgId = null;
+      elPreview.classList.remove('visible');
+    }
 
-    elMsgList.addEventListener('mouseleave', (e) => {
+    elMsgList.addEventListener('mouseover', (e) => {
       const item = e.target.closest('.msg-item');
       if (!item) return;
-      elPreview.classList.remove('visible');
-    }, true);
+      showPreview(item);
+    });
+    elMsgList.addEventListener('mouseout', (e) => {
+      const item = e.target.closest('.msg-item');
+      if (!item) return;
+      const related = e.relatedTarget?.closest?.('.msg-item');
+      // Moving to another msg-item — don't hide, mouseover will update
+      if (related) return;
+      // Left the list — delay hide to allow mouse to move onto preview panel
+      previewHideTimer = setTimeout(() => {
+        if (!elPreview.matches(':hover')) hidePreview();
+      }, 100);
+    });
+
+    elPreview.addEventListener('mouseleave', () => {
+      hidePreview();
+    });
 
     // --- Init ---
     fetchAllMessages().then(() => {
