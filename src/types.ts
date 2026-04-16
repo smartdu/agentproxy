@@ -19,8 +19,24 @@ export interface ProxyMessage {
   responseStatus: number;
   responseHeaders: Record<string, string>;
   responseBody: string;
+  /** Internal: collected SSE body parts to avoid O(n²) string concatenation */
+  _responseBodyParts?: string[];
   isSSE: boolean;
   sseChunks: SSEChunk[];
+  duration: number;
+  proxyMode?: 'reverse' | 'forward-http' | 'forward-connect';
+}
+
+export interface MessageSummary {
+  id: string;
+  seq: number;
+  timestamp: number;
+  updatedAt: number;
+  method: string;
+  url: string;
+  path: string;
+  responseStatus: number;
+  isSSE: boolean;
   duration: number;
   proxyMode?: 'reverse' | 'forward-http' | 'forward-connect';
 }

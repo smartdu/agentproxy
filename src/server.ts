@@ -109,10 +109,22 @@ function createProxyServer(config: ProxyConfig): express.Application {
           res.writeHead(proxyRes.statusCode!, proxyRes.headers);
 
           let buffer = '';
+          let paused = false;
+
           proxyRes.on('data', (chunk: Buffer) => {
             const data = chunk.toString('utf-8');
             buffer += data;
-            res.write(chunk);
+
+            // Handle backpressure: pause upstream if client buffer is full
+            const canWrite = res.write(chunk);
+            if (!canWrite && !paused) {
+              paused = true;
+              proxyRes.pause();
+              res.once('drain', () => {
+                paused = false;
+                proxyRes.resume();
+              });
+            }
 
             // Process complete SSE events
             const lines = buffer.split('\n');
@@ -138,6 +150,20 @@ function createProxyServer(config: ProxyConfig): express.Application {
               duration: Date.now() - startTime,
             });
             res.end();
+          });
+
+          // Handle errors on both streams to prevent half-open connections
+          proxyRes.on('error', (err) => {
+            console.error(`[Proxy] SSE upstream error for ${expressReq.originalUrl}: ${err.message}`);
+            messageStore.updateMessage(msg.id, {
+              duration: Date.now() - startTime,
+            });
+            if (!res.writableEnded) res.end();
+          });
+
+          res.on('error', (err) => {
+            console.error(`[Proxy] SSE client error for ${expressReq.originalUrl}: ${err.message}`);
+            proxyRes.destroy();
           });
         } else {
           // Handle regular response
@@ -259,11 +285,22 @@ function handleForwardHttpProxy(req: express.Request, res: express.Response, ups
         // SSE streaming
         res.writeHead(proxyRes.statusCode!, proxyRes.headers);
         let buffer = '';
+        let paused = false;
 
         proxyRes.on('data', (chunk: Buffer) => {
           const data = chunk.toString('utf-8');
           buffer += data;
-          res.write(chunk);
+
+          // Handle backpressure
+          const canWrite = res.write(chunk);
+          if (!canWrite && !paused) {
+            paused = true;
+            proxyRes.pause();
+            res.once('drain', () => {
+              paused = false;
+              proxyRes.resume();
+            });
+          }
 
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
@@ -288,6 +325,20 @@ function handleForwardHttpProxy(req: express.Request, res: express.Response, ups
             duration: Date.now() - startTime,
           });
           res.end();
+        });
+
+        // Handle errors to prevent half-open connections
+        proxyRes.on('error', (err) => {
+          console.error(`[ForwardProxy] SSE upstream error for ${req.url}: ${err.message}`);
+          messageStore.updateMessage(msg.id, {
+            duration: Date.now() - startTime,
+          });
+          if (!res.writableEnded) res.end();
+        });
+
+        res.on('error', (err) => {
+          console.error(`[ForwardProxy] SSE client error for ${req.url}: ${err.message}`);
+          proxyRes.destroy();
         });
       } else {
         // Regular response
@@ -529,17 +580,36 @@ function createWebServer(config: ProxyConfig): express.Application {
   const publicDir = path.resolve(__dirname, '..', 'src', 'public');
   app.use(express.static(publicDir));
 
-  // Get all messages
+  // Get all messages (summary only, no body/chunks)
   app.get('/api/messages', (_req, res) => {
-    const messages = messageStore.getAllMessages();
+    const messages = messageStore.getMessagesSummary();
     res.json(messages);
   });
 
-  // Get latest messages after a given timestamp
+  // Get latest messages after a given timestamp (summary only)
   app.get('/api/messages/latest', (req, res) => {
     const after = parseInt(req.query.after as string, 10) || 0;
-    const messages = messageStore.getMessagesAfter(after);
+    const messages = messageStore.getMessagesSummaryAfter(after);
     res.json(messages);
+  });
+
+  // Export all messages with full data (streaming JSON to avoid blocking)
+  app.get('/api/messages/export', (_req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    const messages = messageStore.getAllMessagesIterator();
+    let first = true;
+    res.write('[');
+
+    for (const msg of messages) {
+      if (!first) res.write(',');
+      res.write(JSON.stringify(msg));
+      first = false;
+    }
+
+    res.write(']');
+    res.end();
   });
 
   // Get a single message

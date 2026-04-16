@@ -405,7 +405,8 @@
 
   <script>
     const API_BASE = location.origin;
-    let messages = [];
+    let messages = [];       // Array of message summaries
+    let messageDetails = {}; // Cache: id -> full ProxyMessage (loaded on demand)
     let selectedId = null;
     let polling = true;
     let pollTimer = null;
@@ -461,12 +462,39 @@
     elBtnModeOffline.addEventListener('click', () => switchMode('offline'));
 
     // --- Export ---
-    function exportMessages() {
+    async function exportMessages() {
       if (messages.length === 0) {
         alert('没有可导出的消息');
         return;
       }
-      const data = JSON.stringify(messages, null, 2);
+      let exportData;
+      if (mode === 'offline') {
+        exportData = messages;
+      } else {
+        // Fetch full message data for export (summaries lack body/chunks)
+        try {
+          const res = await fetch(`${API_BASE}/api/messages/export`);
+          if (res.ok) {
+            exportData = await res.json();
+          } else {
+            // Fallback: fetch each detail individually
+            exportData = [];
+            for (const m of messages) {
+              if (messageDetails[m.id]) {
+                exportData.push(messageDetails[m.id]);
+              } else {
+                try {
+                  const r = await fetch(`${API_BASE}/api/messages/${m.id}`);
+                  if (r.ok) exportData.push(await r.json());
+                } catch {}
+              }
+            }
+          }
+        } catch {
+          exportData = messages;
+        }
+      }
+      const data = JSON.stringify(exportData, null, 2);
       const blob = new Blob([data], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -553,7 +581,7 @@
 
     function fetchStats() {
       if (mode === 'offline') {
-        // Calculate stats from local messages
+        // Calculate stats from local message summaries
         const stats = {
           totalMessages: messages.length,
           sseMessages: messages.filter(m => m.isSSE).length,
@@ -576,17 +604,21 @@
     }
 
     async function fetchMessageDetail(id) {
+      // Check cache first
+      if (messageDetails[id]) return messageDetails[id];
       if (mode === 'offline') {
-        // Find from local messages
+        // In offline mode, messages may contain full data already
         return messages.find(m => m.id === id) || null;
       }
       try {
         const res = await fetch(`${API_BASE}/api/messages/${id}`);
-        return await res.json();
-      } catch {
-        // Fallback to local
-        return messages.find(m => m.id === id) || null;
-      }
+        if (res.ok) {
+          const detail = await res.json();
+          messageDetails[id] = detail;
+          return detail;
+        }
+      } catch {}
+      return null;
     }
 
     async function clearMessages() {
@@ -594,6 +626,7 @@
         try { await fetch(`${API_BASE}/api/messages`, { method: 'DELETE' }); } catch {}
       }
       messages = [];
+      messageDetails = {};
       lastTimestamp = 0;
       selectedId = null;
       render();
@@ -651,15 +684,28 @@
         elMsgList.innerHTML = `<div class="empty-state">${hint}</div>`;
         return;
       }
-      elMsgList.innerHTML = messages.map(m => {
+
+      // Build a map of existing DOM elements by id for incremental updates
+      const existingItems = new Map();
+      for (const child of elMsgList.children) {
+        if (child.dataset && child.dataset.id) {
+          existingItems.set(child.dataset.id, child);
+        }
+      }
+
+      // Render messages in reverse order (newest first)
+      const reversed = [...messages].reverse();
+      const fragment = document.createDocumentFragment();
+
+      for (const m of reversed) {
         const proxyModeBadge = m.proxyMode === 'forward-http'
           ? '<span class="proxy-mode-badge fwd">FWD</span>'
           : m.proxyMode === 'forward-connect'
             ? '<span class="proxy-mode-badge tunnel">TUNNEL</span>'
             : '';
         const displayPath = m.proxyMode && m.proxyMode !== 'reverse' ? m.url : m.path;
-        return `
-        <div class="msg-item${m.id === selectedId ? ' selected' : ''}" data-id="${m.id}">
+        const isSelected = m.id === selectedId;
+        const newHtml = `
           <div>
             <span class="msg-seq">#${m.seq || ''}</span>
             <span class="msg-method ${m.method}">${m.method}</span>
@@ -672,8 +718,35 @@
             <span>${formatTime(m.timestamp)}</span>
             <span>${formatDuration(m.duration)}</span>
           </div>
-        </div>
-      `;}).reverse().join('');
+        `;
+
+        const existing = existingItems.get(m.id);
+        if (existing) {
+          // Update existing element in-place
+          if (existing.classList.contains('selected') !== isSelected) {
+            existing.classList.toggle('selected', isSelected);
+          }
+          existing.innerHTML = newHtml;
+          fragment.appendChild(existing);
+          existingItems.delete(m.id);
+        } else {
+          // Create new element
+          const div = document.createElement('div');
+          div.className = `msg-item${isSelected ? ' selected' : ''}`;
+          div.dataset.id = m.id;
+          div.innerHTML = newHtml;
+          fragment.appendChild(div);
+        }
+      }
+
+      // Remove stale DOM elements (no longer in messages)
+      for (const [, el] of existingItems) {
+        el.remove();
+      }
+
+      // Replace list content in one DOM operation
+      elMsgList.innerHTML = '';
+      elMsgList.appendChild(fragment);
     }
 
     function renderDetail(msg) {
@@ -927,8 +1000,16 @@
       const item = e.target.closest('.msg-item');
       if (!item) return;
       const id = item.dataset.id;
+
+      // Deselect previous
+      if (selectedId) {
+        const prev = elMsgList.querySelector(`.msg-item[data-id="${selectedId}"]`);
+        if (prev) prev.classList.remove('selected');
+      }
+
       selectedId = id;
-      renderMessageList();
+      item.classList.add('selected');
+
       const detail = await fetchMessageDetail(id);
       renderDetail(detail);
     });
