@@ -1,3 +1,11 @@
+export interface ProxyConfig {
+  targetUrl: string;
+  proxyPort: number;
+  webPort: number;
+  enableForwardProxy: boolean;
+  upstreamProxy: string;
+}
+
 export interface ProxyMessage {
   id: string;
   seq: number;
@@ -14,6 +22,7 @@ export interface ProxyMessage {
   isSSE: boolean;
   sseChunks: SSEChunk[];
   duration: number;
+  proxyMode?: 'reverse' | 'forward-http' | 'forward-connect';
 }
 
 export interface SSEChunk {

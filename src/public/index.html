@@ -14,6 +14,11 @@
       display: flex; align-items: center; padding: 0 20px; gap: 16px;
     }
     .top-bar .logo { font-size: 18px; font-weight: bold; color: #1a73e8; letter-spacing: 1px; }
+    .proxy-mode-label {
+      font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: bold; margin-left: 8px;
+    }
+    .proxy-mode-label.reverse { background: #e8f0fe; color: #1a73e8; }
+    .proxy-mode-label.forward { background: #e6f4ea; color: #137333; }
     .stat-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
     .stat-item .label { color: #888; }
     .stat-item .value { color: #1a73e8; font-weight: bold; font-size: 15px; }
@@ -87,6 +92,13 @@
     .msg-method.PUT { background: #fef7e0; color: #b06000; }
     .msg-method.PATCH { background: #f3e8fd; color: #7627bb; }
     .msg-method.DELETE { background: #fce8e6; color: #c5221f; }
+    .msg-method.CONNECT { background: #e8eaed; color: #5f6368; }
+    .msg-item .proxy-mode-badge {
+      display: inline-block; font-size: 10px; padding: 0 5px; border-radius: 3px;
+      margin-left: 4px; font-weight: bold;
+    }
+    .proxy-mode-badge.fwd { background: #e6f4ea; color: #137333; }
+    .proxy-mode-badge.tunnel { background: #f3e8fd; color: #7627bb; }
     .msg-item .msg-path { font-size: 13px; color: #333; word-break: break-all; }
     .msg-item .msg-meta {
       display: flex; gap: 10px; margin-top: 4px; font-size: 11px; color: #999;
@@ -167,6 +179,28 @@
     .no-selection {
       display: flex; align-items: center; justify-content: center;
       height: 100%; color: #aaa; font-size: 15px;
+    }
+
+    .welcome-panel {
+      padding: 30px 24px; overflow-y: auto; height: 100%;
+      font-size: 13px; line-height: 1.8; color: #555;
+    }
+    .welcome-panel h2 {
+      font-size: 18px; color: #1a73e8; margin-bottom: 16px; font-weight: 600;
+    }
+    .welcome-panel h3 {
+      font-size: 14px; color: #333; margin: 18px 0 6px; font-weight: 600;
+    }
+    .welcome-panel code {
+      background: #f1f3f4; padding: 2px 6px; border-radius: 3px; font-size: 12px; color: #d93025;
+    }
+    .welcome-panel pre {
+      background: #f1f3f4; padding: 10px 12px; border-radius: 6px; font-size: 12px;
+      line-height: 1.6; overflow-x: auto; color: #333; margin: 6px 0 10px;
+    }
+    .welcome-panel .version-tag {
+      font-size: 11px; color: #fff; background: #1a73e8; padding: 2px 8px;
+      border-radius: 10px; margin-left: 8px; font-weight: 500; vertical-align: middle;
     }
 
     /* Scrollbar */
@@ -301,6 +335,7 @@
   <!-- Top Bar -->
   <div class="top-bar">
     <div class="logo">AgentProxy</div>
+    <span class="proxy-mode-label" id="proxy-mode-label">--</span>
     <div class="mode-switch">
       <button id="btn-mode-live" class="active">实时</button>
       <button id="btn-mode-offline">离线</button>
@@ -338,7 +373,32 @@
       <div class="header" id="detail-header">消息详情</div>
       <div class="detail-actions" id="detail-actions" style="display:none"></div>
       <div class="detail-content" id="detail-content">
-        <div class="no-selection">选择左侧消息查看详情</div>
+        <div class="welcome-panel">
+          <h2>AgentProxy <span class="version-tag">v1.9.0</span></h2>
+          <p>AgentProxy 是一个 API 代理监控工具，支持<strong>反向代理</strong>和<strong>正向代理</strong>两种模式，可拦截并查看所有经过的 HTTP/HTTPS 请求与响应。</p>
+
+          <h3>反向代理（默认）</h3>
+          <p>客户端直接请求代理服务器，代理转发到目标地址。适用于 API 调试场景。</p>
+          <pre>agentproxy -t http://10.30.6.49:9090</pre>
+          <p>代理默认转发到 <code>https://api.deepseek.com</code>，可通过 <code>-t</code> 指定目标地址。在代码中将 API 地址改为 <code>http://localhost:3000</code>，所有请求会被转发到目标服务器。</p>
+
+          <h3>正向代理</h3>
+          <p>在系统或浏览器中设置代理服务器，浏览器所有流量自动经过代理。适用于 Web 调试场景。</p>
+          <pre>agentproxy -f</pre>
+          <p>然后在 Windows 系统代理设置中，将代理地址设为 <code>本机IP:3000</code>。浏览器中访问的 HTTP 请求会被转发到目标服务器，HTTPS 请求会建立 CONNECT 隧道。</p>
+
+          <h3>命令行参数</h3>
+          <pre>-t, --target &lt;url&gt;        目标地址（默认 https://api.deepseek.com）
+-p, --proxy-port &lt;port&gt;   代理端口（默认 3000）
+-w, --web-port &lt;port&gt;     Web UI 端口（默认 8080）
+-f, --forward-proxy       启用正向代理（HTTP + CONNECT 隧道）
+-u, --upstream &lt;url&gt;      上游代理地址（默认 http://10.30.6.49:9090）
+-h, --help                显示帮助信息
+-v, --version             显示版本号</pre>
+
+          <h3>Web UI</h3>
+          <p>当前页面即为 Web UI，左侧显示请求列表，点击可查看请求/响应详情。支持 SSE 流式响应、OpenAI/Anthropic 消息格式解析、数据导出/导入等功能。</p>
+        </div>
       </div>
     </div>
   </div>
@@ -480,6 +540,17 @@
       }
     }
 
+    function updateProxyModeLabel(stats) {
+      const el = document.getElementById('proxy-mode-label');
+      if (!el) return;
+      const mode = stats.proxyMode === 'forward' ? 'forward' : 'reverse';
+      el.textContent = mode === 'forward' ? 'FWD' : 'REV';
+      el.className = `proxy-mode-label ${mode}`;
+      el.title = mode === 'forward'
+        ? `正向代理 → 上游: ${stats.upstreamProxy || '直连'}`
+        : `反向代理 → 目标: ${stats.targetUrl || ''}`;
+    }
+
     function fetchStats() {
       if (mode === 'offline') {
         // Calculate stats from local messages
@@ -499,6 +570,7 @@
           elStatTotal.textContent = stats.totalMessages;
           elStatSSE.textContent = stats.sseMessages;
           elStatError.textContent = stats.errorMessages;
+          updateProxyModeLabel(stats);
         })
         .catch(() => {});
     }
@@ -579,13 +651,21 @@
         elMsgList.innerHTML = `<div class="empty-state">${hint}</div>`;
         return;
       }
-      elMsgList.innerHTML = messages.map(m => `
+      elMsgList.innerHTML = messages.map(m => {
+        const proxyModeBadge = m.proxyMode === 'forward-http'
+          ? '<span class="proxy-mode-badge fwd">FWD</span>'
+          : m.proxyMode === 'forward-connect'
+            ? '<span class="proxy-mode-badge tunnel">TUNNEL</span>'
+            : '';
+        const displayPath = m.proxyMode && m.proxyMode !== 'reverse' ? m.url : m.path;
+        return `
         <div class="msg-item${m.id === selectedId ? ' selected' : ''}" data-id="${m.id}">
           <div>
             <span class="msg-seq">#${m.seq || ''}</span>
             <span class="msg-method ${m.method}">${m.method}</span>
-            <span class="msg-path">${m.path}</span>
+            <span class="msg-path">${displayPath}</span>
             ${m.isSSE ? '<span class="sse-badge">SSE</span>' : ''}
+            ${proxyModeBadge}
           </div>
           <div class="msg-meta">
             <span class="msg-status ${statusClass(m.responseStatus)}">${m.responseStatus || '...'}</span>
@@ -593,24 +673,31 @@
             <span>${formatDuration(m.duration)}</span>
           </div>
         </div>
-      `).reverse().join('');
+      `;}).reverse().join('');
     }
 
     function renderDetail(msg) {
       currentDetailMsg = msg;
       const elActions = document.getElementById('detail-actions');
       if (!msg) {
-        elDetailContent.innerHTML = '<div class="no-selection">选择左侧消息查看详情</div>';
+        elDetailContent.innerHTML = '<div class="welcome-panel"><h2>AgentProxy <span class="version-tag">v1.9.0</span></h2><p>选择左侧消息查看详情，或参考上方的使用说明。</p></div>';
         elDetailHeader.textContent = '消息详情';
         elActions.style.display = 'none';
         return;
       }
 
+      const detailPath = msg.proxyMode && msg.proxyMode !== 'reverse' ? msg.url : msg.path;
+      const detailModeBadge = msg.proxyMode === 'forward-http'
+        ? '<span class="proxy-mode-badge fwd">FWD</span>'
+        : msg.proxyMode === 'forward-connect'
+          ? '<span class="proxy-mode-badge tunnel">TUNNEL</span>'
+          : '';
       elDetailHeader.innerHTML = `
         <span class="msg-method ${msg.method}">${msg.method}</span>
-        <span>${msg.path}</span>
+        <span>${detailPath}</span>
         <span class="msg-status ${statusClass(msg.responseStatus)}">${msg.responseStatus}</span>
         ${msg.isSSE ? '<span class="sse-badge">SSE</span>' : ''}
+        ${detailModeBadge}
         <span style="color:#999;margin-left:auto">${formatTime(msg.timestamp)} · ${formatDuration(msg.duration)}</span>
       `;
 
