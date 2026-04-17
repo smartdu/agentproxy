@@ -64,6 +64,40 @@
       font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px;
       display: flex; justify-content: space-between; align-items: center;
     }
+    .search-box {
+      padding: 8px 14px; border-bottom: 1px solid #e0e0e0;
+    }
+    .search-wrap {
+      position: relative;
+    }
+    .search-input {
+      width: 100%; padding: 6px 28px 6px 10px; border: 1px solid #ccc; border-radius: 4px;
+      font-size: 13px; outline: none; color: #333; background: #fff;
+    }
+    .search-input:focus { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.15); }
+    .search-input::placeholder { color: #aaa; }
+    .search-clear {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      width: 18px; height: 18px; border: none; background: #ccc; border-radius: 50%;
+      cursor: pointer; display: none; align-items: center; justify-content: center;
+      font-size: 11px; line-height: 1; color: #fff; padding: 0;
+    }
+    .search-clear:hover { background: #999; }
+    .search-clear.visible { display: flex; }
+    .search-scope {
+      display: flex; gap: 0; margin-top: 6px; border: 1px solid #ccc; border-radius: 4px; overflow: hidden;
+    }
+    .search-scope button {
+      flex: 1; border: none; padding: 4px 0; font-size: 11px; cursor: pointer;
+      background: #fff; color: #666; transition: all 0.15s;
+    }
+    .search-scope button + button { border-left: 1px solid #ccc; }
+    .search-scope button.active { background: #1a73e8; color: #fff; }
+    .search-scope button:not(.active):hover { background: #eef4fd; color: #1a73e8; }
+    .search-count {
+      font-size: 11px; color: #888; margin-top: 4px; display: none;
+    }
+    .search-count.visible { display: block; }
     .left-panel .toolbar {
       padding: 6px 14px; border-bottom: 1px solid #e0e0e0;
       display: flex; gap: 6px;
@@ -358,6 +392,18 @@
     <!-- Left Panel -->
     <div class="left-panel">
       <div class="header"><span>消息列表</span><span id="msg-count">0</span></div>
+      <div class="search-box">
+        <div class="search-wrap">
+          <input type="text" class="search-input" id="search-input" placeholder="搜索关键词...">
+          <button class="search-clear" id="search-clear">&times;</button>
+        </div>
+        <div class="search-scope">
+          <button class="active" data-scope="all">全部</button>
+          <button data-scope="request">请求</button>
+          <button data-scope="response">响应</button>
+        </div>
+        <div class="search-count" id="search-count"></div>
+      </div>
       <div class="toolbar">
         <button id="btn-export">导出</button>
         <button id="btn-import">导入</button>
@@ -374,7 +420,7 @@
       <div class="detail-actions" id="detail-actions" style="display:none"></div>
       <div class="detail-content" id="detail-content">
         <div class="welcome-panel">
-          <h2>AgentProxy <span class="version-tag">v1.9.0</span></h2>
+          <h2>AgentProxy <span class="version-tag">v0.0.0</span></h2>
           <p>AgentProxy 是一个 API 代理监控工具，支持<strong>反向代理</strong>和<strong>正向代理</strong>两种模式，可拦截并查看所有经过的 HTTP/HTTPS 请求与响应。</p>
 
           <h3>反向代理（默认）</h3>
@@ -412,6 +458,13 @@
     let pollTimer = null;
     let lastTimestamp = 0;
     let mode = 'live'; // 'live' | 'offline'
+    let appVersion = '';
+
+    // Search state
+    let searchKeyword = '';
+    let searchScope = 'all'; // 'all' | 'request' | 'response'
+    let searchDebounceTimer = null;
+    let filteredIds = null; // null = no filter, Set = filtered result
 
     // DOM refs
     const elMsgList = document.getElementById('msg-list');
@@ -432,6 +485,10 @@
     const elBtnExport = document.getElementById('btn-export');
     const elBtnImport = document.getElementById('btn-import');
     const elFileImport = document.getElementById('file-import');
+    const elSearchInput = document.getElementById('search-input');
+    const elSearchCount = document.getElementById('search-count');
+    const elSearchScope = document.querySelector('.search-scope');
+    const elSearchClear = document.getElementById('search-clear');
 
     // --- Mode switching ---
     function switchMode(newMode) {
@@ -586,6 +643,7 @@
           totalMessages: messages.length,
           sseMessages: messages.filter(m => m.isSSE).length,
           errorMessages: messages.filter(m => m.responseStatus >= 400).length,
+          version: appVersion,
         };
         elStatTotal.textContent = stats.totalMessages;
         elStatSSE.textContent = stats.sseMessages;
@@ -599,8 +657,20 @@
           elStatSSE.textContent = stats.sseMessages;
           elStatError.textContent = stats.errorMessages;
           updateProxyModeLabel(stats);
+          if (stats.version && !appVersion) {
+            appVersion = stats.version;
+            updateVersionDisplay();
+          }
         })
         .catch(() => {});
+    }
+
+    function updateVersionDisplay() {
+      if (!appVersion) return;
+      const verStr = 'v' + appVersion;
+      document.querySelectorAll('.version-tag').forEach(el => {
+        el.textContent = verStr;
+      });
     }
 
     async function fetchMessageDetail(id) {
@@ -629,6 +699,10 @@
       messageDetails = {};
       lastTimestamp = 0;
       selectedId = null;
+      filteredIds = null;
+      searchKeyword = '';
+      elSearchInput.value = '';
+      elSearchCount.classList.remove('visible');
       render();
     }
 
@@ -675,13 +749,163 @@
       }
     }
 
+    // --- Search ---
+    function matchSummary(summary, keyword) {
+      // Match against summary-level fields based on scope
+      const kw = keyword.toLowerCase();
+      if (searchScope === 'all' || searchScope === 'request') {
+        if (summary.method && summary.method.toLowerCase().includes(kw)) return true;
+        if (summary.url && summary.url.toLowerCase().includes(kw)) return true;
+        if (summary.path && summary.path.toLowerCase().includes(kw)) return true;
+      }
+      if (searchScope === 'all' || searchScope === 'response') {
+        if (summary.responseStatus && String(summary.responseStatus).includes(kw)) return true;
+      }
+      return false;
+    }
+
+    function matchDetail(detail, keyword) {
+      if (!detail) return false;
+      const kw = keyword.toLowerCase();
+      if (searchScope === 'all' || searchScope === 'request') {
+        if (detail.requestBody && detail.requestBody.toLowerCase().includes(kw)) return true;
+        if (detail.requestHeaders) {
+          for (const v of Object.values(detail.requestHeaders)) {
+            if (v && v.toLowerCase().includes(kw)) return true;
+          }
+          for (const k of Object.keys(detail.requestHeaders)) {
+            if (k && k.toLowerCase().includes(kw)) return true;
+          }
+        }
+      }
+      if (searchScope === 'all' || searchScope === 'response') {
+        if (detail.responseBody && detail.responseBody.toLowerCase().includes(kw)) return true;
+        // For SSE messages, also search the reconstructed full text
+        if (detail.isSSE && detail.sseChunks && detail.sseChunks.length > 0) {
+          if (!detail._reconstructedText) {
+            const format = detectFormat(detail.path);
+            const reconstructed = format === 'openai'
+              ? reconstructOpenAISSEMessage(detail.sseChunks)
+              : reconstructSSEMessage(detail.sseChunks);
+            // Cache: concatenate all text content for fast substring search
+            const parts = [];
+            for (const block of (reconstructed.content || [])) {
+              if (block.type === 'text' && block.text) parts.push(block.text);
+              else if (block.type === 'thinking' && block.thinking) parts.push(block.thinking);
+              else if (block.type === 'tool_use') {
+                if (block.name) parts.push(block.name);
+                if (block.input) parts.push(typeof block.input === 'string' ? block.input : JSON.stringify(block.input));
+              }
+            }
+            detail._reconstructedText = parts.join(' ');
+          }
+          if (detail._reconstructedText && detail._reconstructedText.toLowerCase().includes(kw)) return true;
+        }
+        if (detail.responseHeaders) {
+          for (const v of Object.values(detail.responseHeaders)) {
+            if (v && v.toLowerCase().includes(kw)) return true;
+          }
+          for (const k of Object.keys(detail.responseHeaders)) {
+            if (k && k.toLowerCase().includes(kw)) return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    async function performSearch() {
+      const keyword = searchKeyword.trim();
+      if (!keyword) {
+        filteredIds = null;
+        elSearchCount.classList.remove('visible');
+        renderMessageList();
+        return;
+      }
+
+      const result = new Set();
+      const fetchPromises = [];
+
+      for (const m of messages) {
+        // Check summary fields first
+        if (matchSummary(m, keyword)) {
+          result.add(m.id);
+          continue;
+        }
+        // Check cached detail
+        if (messageDetails[m.id]) {
+          if (matchDetail(messageDetails[m.id], keyword)) {
+            result.add(m.id);
+          }
+          continue;
+        }
+        // Need to fetch detail for body/header search
+        fetchPromises.push(
+          fetchMessageDetail(m.id).then(detail => {
+            if (detail && matchDetail(detail, keyword)) {
+              result.add(m.id);
+            }
+          })
+        );
+      }
+
+      if (fetchPromises.length > 0) {
+        await Promise.all(fetchPromises);
+      }
+
+      filteredIds = result;
+      elSearchCount.textContent = `匹配 ${result.size} / ${messages.length} 条`;
+      elSearchCount.classList.add('visible');
+      renderMessageList();
+    }
+
+    function onSearchInput() {
+      searchKeyword = elSearchInput.value;
+      elSearchClear.classList.toggle('visible', searchKeyword.length > 0);
+      if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(performSearch, 300);
+    }
+
+    function clearSearch() {
+      elSearchInput.value = '';
+      searchKeyword = '';
+      elSearchClear.classList.remove('visible');
+      filteredIds = null;
+      elSearchCount.classList.remove('visible');
+      renderMessageList();
+    }
+
+    elSearchInput.addEventListener('input', onSearchInput);
+    elSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') clearSearch();
+    });
+    elSearchClear.addEventListener('click', clearSearch);
+
+    elSearchScope.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-scope]');
+      if (!btn) return;
+      elSearchScope.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      searchScope = btn.dataset.scope;
+      if (searchKeyword.trim()) performSearch();
+    });
+
     function renderMessageList() {
       elMsgCount.textContent = messages.length;
+      const isSearching = filteredIds !== null;
+      const displayMessages = isSearching
+        ? messages.filter(m => filteredIds.has(m.id))
+        : messages;
+
       if (messages.length === 0) {
         const hint = mode === 'offline'
           ? '暂无消息，请导入本地文件'
           : '暂无消息，请通过代理端口发送请求';
         elMsgList.innerHTML = `<div class="empty-state">${hint}</div>`;
+        return;
+      }
+
+      if (displayMessages.length === 0) {
+        elMsgList.innerHTML = '<div class="empty-state">无匹配结果</div>';
         return;
       }
 
@@ -693,8 +917,8 @@
         }
       }
 
-      // Render messages in reverse order (newest first)
-      const reversed = [...messages].reverse();
+      // Render filtered messages in reverse order (newest first)
+      const reversed = [...displayMessages].reverse();
       const fragment = document.createDocumentFragment();
 
       for (const m of reversed) {
@@ -753,7 +977,7 @@
       currentDetailMsg = msg;
       const elActions = document.getElementById('detail-actions');
       if (!msg) {
-        elDetailContent.innerHTML = '<div class="welcome-panel"><h2>AgentProxy <span class="version-tag">v1.9.0</span></h2><p>选择左侧消息查看详情，或参考上方的使用说明。</p></div>';
+        elDetailContent.innerHTML = '<div class="welcome-panel"><h2>AgentProxy <span class="version-tag">v' + (appVersion || '0.0.0') + '</span></h2><p>选择左侧消息查看详情，或参考上方的使用说明。</p></div>';
         elDetailHeader.textContent = '消息详情';
         elActions.style.display = 'none';
         return;
@@ -991,7 +1215,11 @@
     }
 
     function render() {
-      renderMessageList();
+      if (searchKeyword.trim() && filteredIds !== null) {
+        performSearch();
+      } else {
+        renderMessageList();
+      }
       fetchStats();
     }
 

@@ -5,6 +5,11 @@ import type { ProxyMessage, ProxyConfig } from './types';
 import * as http from 'http';
 import * as net from 'net';
 import * as path from 'path';
+import * as fs from 'fs';
+
+const VERSION = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, '..', 'package.json'), 'utf-8')
+).version;
 
 function createProxyServer(config: ProxyConfig): express.Application {
   const { targetUrl, enableForwardProxy, upstreamProxy } = config;
@@ -628,6 +633,7 @@ function createWebServer(config: ProxyConfig): express.Application {
       proxyMode: config.enableForwardProxy ? 'forward' : 'reverse',
       targetUrl: config.targetUrl,
       upstreamProxy: config.upstreamProxy,
+      version: VERSION,
     });
   });
 
