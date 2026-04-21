@@ -2237,11 +2237,16 @@
           const listItem = elMsgList.querySelector(`.msg-item[data-id="${msgId}"]`);
           if (listItem) {
             listItem.click();
+            listItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
           } else {
             selectedId = msgId;
             const detail = await fetchMessageDetail(msgId);
             renderDetail(detail);
             renderMessageList();
+            requestAnimationFrame(() => {
+              const item = elMsgList.querySelector(`.msg-item[data-id="${msgId}"]`);
+              if (item) item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
           }
         });
       });
