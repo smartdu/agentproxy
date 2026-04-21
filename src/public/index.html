@@ -363,6 +363,153 @@
     }
     .collapsible-wrap .collapsible-header:hover { background: #e8eaed; }
     .collapsible-wrap .collapsible-body { margin-bottom: 0; padding: 4px; }
+
+    /* Tool Summary Panel */
+    .tool-summary-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4); z-index: 1000;
+      display: none; align-items: stretch; justify-content: center;
+    }
+    .tool-summary-overlay.visible { display: flex; }
+    .tool-summary-panel {
+      background: #fff; width: 720px; max-width: 90vw;
+      height: 100vh; display: flex; flex-direction: column;
+      box-shadow: -4px 0 24px rgba(0,0,0,0.15);
+    }
+    .tool-summary-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px 20px; border-bottom: 1px solid #e0e0e0;
+      flex-shrink: 0;
+    }
+    .tool-summary-header h2 {
+      font-size: 16px; color: #333; font-weight: 600; margin: 0;
+    }
+    .tool-summary-stats {
+      font-size: 12px; color: #888; margin-left: 8px;
+    }
+    .tool-summary-close {
+      margin-left: auto; background: none; border: none;
+      font-size: 20px; color: #888; cursor: pointer; padding: 4px 8px;
+      border-radius: 4px; line-height: 1;
+    }
+    .tool-summary-close:hover { background: #f0f2f5; color: #333; }
+    .tool-summary-toggle {
+      background: none; border: 1px solid #ccc; color: #666;
+      border-radius: 4px; padding: 3px 10px; font-size: 12px;
+      cursor: pointer; transition: all 0.15s; margin-left: auto;
+    }
+    .tool-summary-toggle:hover { background: #eef4fd; color: #1a73e8; border-color: #1a73e8; }
+    .tool-summary-tabs {
+      display: flex; border-bottom: 1px solid #e0e0e0;
+      padding: 0 20px; flex-shrink: 0;
+    }
+    .tool-summary-tabs button {
+      background: none; border: none; border-bottom: 2px solid transparent;
+      padding: 10px 16px; font-size: 13px; color: #666; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tool-summary-tabs button:hover { color: #1a73e8; }
+    .tool-summary-tabs button.active { color: #1a73e8; border-bottom-color: #1a73e8; font-weight: bold; }
+    .tool-summary-content {
+      flex: 1; overflow-y: auto; padding: 20px;
+    }
+    .tool-summary-empty {
+      text-align: center; color: #aaa; padding: 60px 20px; font-size: 14px;
+    }
+    .tool-summary-loading {
+      text-align: center; color: #888; padding: 60px 20px; font-size: 14px;
+    }
+
+    /* Category view */
+    .tool-category { margin-bottom: 16px; }
+    .tool-category-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px; background: #f8f9fa; border: 1px solid #e0e0e0;
+      border-radius: 6px; cursor: pointer; user-select: none;
+      transition: background 0.15s;
+    }
+    .tool-category-header:hover { background: #eef4fd; }
+    .tool-category-header .arrow {
+      font-size: 10px; color: #666; transition: transform 0.2s;
+      display: inline-block; width: 14px; text-align: center;
+    }
+    .tool-category-header.collapsed .arrow { transform: rotate(-90deg); }
+    .tool-category-name {
+      font-size: 13px; font-weight: 600; color: #1a73e8;
+      font-family: 'Fira Code', 'Consolas', monospace;
+    }
+    .tool-category-count {
+      font-size: 11px; color: #888; background: #e8f0fe;
+      padding: 1px 8px; border-radius: 10px;
+    }
+    .tool-category-bar-wrap {
+      flex: 1; max-width: 160px; height: 6px; background: #e8eaed;
+      border-radius: 3px; overflow: hidden; margin-left: 8px;
+    }
+    .tool-category-bar {
+      height: 100%; border-radius: 3px; transition: width 0.3s;
+    }
+    .tool-category-pct {
+      font-size: 11px; color: #888; min-width: 36px; text-align: right;
+    }
+    .tool-category-body { padding: 8px 0 0 14px; }
+    .tool-category-body.collapsed { display: none; }
+
+    /* Tool call record */
+    .tool-call-record {
+      display: flex; gap: 10px; padding: 10px 12px;
+      border: 1px solid #f0f0f0; border-radius: 6px;
+      margin-bottom: 6px; font-size: 12px;
+      transition: background 0.15s;
+    }
+    .tool-call-record:hover { background: #f8f9fa; }
+    .tool-call-time {
+      color: #888; font-family: 'Fira Code', 'Consolas', monospace;
+      white-space: nowrap; min-width: 90px; font-size: 11px;
+    }
+    .tool-call-detail { flex: 1; min-width: 0; }
+    .tool-call-source {
+      font-size: 11px; color: #1a73e8; cursor: pointer;
+      margin-bottom: 4px; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .tool-call-source:hover { text-decoration: underline; }
+    .tool-call-source .seq { font-weight: bold; }
+    .tool-call-input {
+      background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px;
+      padding: 8px; font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 11px; white-space: pre-wrap; word-break: break-all;
+      max-height: 120px; overflow-y: auto; line-height: 1.5;
+    }
+    .tool-call-name-tag {
+      display: inline-block; font-size: 11px; font-weight: bold;
+      padding: 1px 8px; border-radius: 3px; margin-right: 6px;
+    }
+
+    /* Timeline view */
+    .tool-timeline { position: relative; padding-left: 20px; }
+    .tool-timeline::before {
+      content: ''; position: absolute; left: 8px; top: 0; bottom: 0;
+      width: 2px; background: #e0e0e0;
+    }
+    .tool-timeline-item {
+      position: relative; margin-bottom: 12px; padding-left: 20px;
+    }
+    .tool-timeline-item::before {
+      content: ''; position: absolute; left: -16px; top: 14px;
+      width: 10px; height: 10px; border-radius: 50%;
+      border: 2px solid #1a73e8; background: #fff;
+    }
+    .tool-timeline-item .tool-call-record {
+      border: 1px solid #e0e0e0;
+    }
+
+    /* Toolbar button for tool summary */
+    .left-panel .toolbar button.tool-summary-btn {
+      color: #1a73e8; border-color: #1a73e8; font-weight: 500;
+    }
+    .left-panel .toolbar button.tool-summary-btn:hover {
+      background: #1a73e8; color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -405,6 +552,7 @@
         <div class="search-count" id="search-count"></div>
       </div>
       <div class="toolbar">
+        <button id="btn-tool-summary" class="tool-summary-btn">工具总览</button>
         <button id="btn-export">导出</button>
         <button id="btn-import">导入</button>
         <input type="file" id="file-import" accept=".json">
@@ -445,6 +593,25 @@
           <h3>Web UI</h3>
           <p>当前页面即为 Web UI，左侧显示请求列表，点击可查看请求/响应详情。支持 SSE 流式响应、OpenAI/Anthropic 消息格式解析、数据导出/导入等功能。</p>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tool Summary Panel -->
+  <div class="tool-summary-overlay" id="tool-summary-overlay">
+    <div class="tool-summary-panel">
+      <div class="tool-summary-header">
+        <h2>工具调用总览</h2>
+        <span class="tool-summary-stats" id="tool-summary-stats"></span>
+        <button class="tool-summary-toggle" id="tool-summary-toggle">全部展开</button>
+        <button class="tool-summary-close" id="tool-summary-close">&times;</button>
+      </div>
+      <div class="tool-summary-tabs">
+        <button class="active" data-view="category">分类视图</button>
+        <button data-view="timeline">时间线</button>
+      </div>
+      <div class="tool-summary-content" id="tool-summary-content">
+        <div class="tool-summary-empty">暂无工具调用数据</div>
       </div>
     </div>
   </div>
@@ -1820,6 +1987,265 @@
         else btn.classList.remove('visible');
       }
     }, true);
+
+    // --- Tool Summary Panel ---
+    const elToolSummaryOverlay = document.getElementById('tool-summary-overlay');
+    const elToolSummaryContent = document.getElementById('tool-summary-content');
+    const elToolSummaryStats = document.getElementById('tool-summary-stats');
+    const elToolSummaryClose = document.getElementById('tool-summary-close');
+    const elToolSummaryToggle = document.getElementById('tool-summary-toggle');
+    const elBtnToolSummary = document.getElementById('btn-tool-summary');
+    let toolSummaryView = 'category'; // 'category' | 'timeline'
+    let toolSummaryData = null; // cached aggregation result
+    let toolSummaryAllExpanded = true; // track expand/collapse state
+
+    // Color palette for tool tags
+    const TOOL_COLORS = [
+      { bg: '#e8f0fe', fg: '#1a73e8' },
+      { bg: '#e6f4ea', fg: '#137333' },
+      { bg: '#fef7e0', fg: '#b06000' },
+      { bg: '#fce8e6', fg: '#c5221f' },
+      { bg: '#f3e8fd', fg: '#7627bb' },
+      { bg: '#e0f7fa', fg: '#00838f' },
+      { bg: '#fff3e0', fg: '#e65100' },
+      { bg: '#f1f8e9', fg: '#558b2f' },
+    ];
+    const toolColorMap = {};
+    let toolColorIdx = 0;
+    function getToolColor(name) {
+      if (!toolColorMap[name]) {
+        toolColorMap[name] = TOOL_COLORS[toolColorIdx % TOOL_COLORS.length];
+        toolColorIdx++;
+      }
+      return toolColorMap[name];
+    }
+
+    function openToolSummary() {
+      elToolSummaryOverlay.classList.add('visible');
+      buildAndRenderToolSummary();
+    }
+
+    function closeToolSummary() {
+      elToolSummaryOverlay.classList.remove('visible');
+    }
+
+    elBtnToolSummary.addEventListener('click', openToolSummary);
+    elToolSummaryClose.addEventListener('click', closeToolSummary);
+    elToolSummaryOverlay.addEventListener('click', (e) => {
+      if (e.target === elToolSummaryOverlay) closeToolSummary();
+    });
+
+    // Tab switching
+    elToolSummaryOverlay.querySelector('.tool-summary-tabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-view]');
+      if (!btn) return;
+      toolSummaryView = btn.dataset.view;
+      elToolSummaryOverlay.querySelectorAll('.tool-summary-tabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderToolSummaryView();
+    });
+
+    // Toggle expand/collapse all categories
+    elToolSummaryToggle.addEventListener('click', () => {
+      toolSummaryAllExpanded = !toolSummaryAllExpanded;
+      elToolSummaryToggle.textContent = toolSummaryAllExpanded ? '全部收起' : '全部展开';
+      elToolSummaryContent.querySelectorAll('.tool-category-header').forEach(header => {
+        const body = header.nextElementSibling;
+        if (!body) return;
+        if (toolSummaryAllExpanded) {
+          header.classList.remove('collapsed');
+          body.classList.remove('collapsed');
+        } else {
+          header.classList.add('collapsed');
+          body.classList.add('collapsed');
+        }
+      });
+    });
+
+    async function buildAndRenderToolSummary() {
+      if (messages.length === 0) {
+        toolSummaryData = null;
+        renderToolSummaryView();
+        return;
+      }
+
+      elToolSummaryContent.innerHTML = '<div class="tool-summary-loading">正在加载工具调用数据...</div>';
+
+      // Fetch details for all messages that might have tool calls
+      const allCalls = []; // { name, input, timestamp, msgId, msgSeq, msgMethod, msgPath }
+      const fetchPromises = messages.map(async (m) => {
+        const detail = await fetchMessageDetail(m.id);
+        if (!detail) return;
+
+        // Parse response to extract tool_use blocks
+        const format = detectFormat(detail.path);
+        let parsed = null;
+
+        if (detail.isSSE && detail.sseChunks && detail.sseChunks.length > 0) {
+          parsed = format === 'openai'
+            ? reconstructOpenAISSEMessage(detail.sseChunks)
+            : reconstructSSEMessage(detail.sseChunks);
+        } else if (detail.responseBody) {
+          parsed = format === 'openai'
+            ? parseOpenAIResponse(detail.responseBody)
+            : parseAnthropicResponse(detail.responseBody);
+          if (!parsed) parsed = parseOpenAIResponse(detail.responseBody);
+          if (!parsed) parsed = parseAnthropicResponse(detail.responseBody);
+        }
+
+        if (!parsed || !parsed.content) return;
+
+        const timestamp = detail.timestamp || m.timestamp;
+        for (const block of parsed.content) {
+          if (block.type === 'tool_use') {
+            allCalls.push({
+              name: block.name || 'unknown',
+              input: block.input,
+              timestamp,
+              msgId: detail.id,
+              msgSeq: m.seq || '',
+              msgMethod: m.method,
+              msgPath: m.proxyMode && m.proxyMode !== 'reverse' ? m.url : m.path,
+            });
+          }
+        }
+      });
+
+      await Promise.all(fetchPromises);
+
+      // Sort by timestamp ascending
+      allCalls.sort((a, b) => a.timestamp - b.timestamp);
+
+      // Group by tool name
+      const groups = {};
+      for (const call of allCalls) {
+        if (!groups[call.name]) groups[call.name] = [];
+        groups[call.name].push(call);
+      }
+
+      toolSummaryData = { allCalls, groups };
+      renderToolSummaryView();
+    }
+
+    function renderToolSummaryView() {
+      if (!toolSummaryData || toolSummaryData.allCalls.length === 0) {
+        elToolSummaryStats.textContent = '';
+        elToolSummaryContent.innerHTML = '<div class="tool-summary-empty">暂无工具调用数据</div>';
+        elToolSummaryToggle.style.display = 'none';
+        return;
+      }
+
+      const { allCalls, groups } = toolSummaryData;
+      const totalCalls = allCalls.length;
+      const totalTypes = Object.keys(groups).length;
+      elToolSummaryStats.textContent = `${totalTypes} 种工具 · ${totalCalls} 次调用`;
+
+      if (toolSummaryView === 'category') {
+        toolSummaryAllExpanded = true;
+        elToolSummaryToggle.textContent = '全部收起';
+        elToolSummaryToggle.style.display = '';
+        renderCategoryView(groups, totalCalls);
+      } else {
+        elToolSummaryToggle.style.display = 'none';
+        renderTimelineView(allCalls);
+      }
+    }
+
+    function renderCategoryView(groups, totalCalls) {
+      const sortedNames = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length);
+      const html = sortedNames.map(name => {
+        const calls = groups[name];
+        const count = calls.length;
+        const pct = totalCalls > 0 ? Math.round(count / totalCalls * 100) : 0;
+        const color = getToolColor(name);
+
+        // Sort calls by timestamp ascending within each category
+        calls.sort((a, b) => a.timestamp - b.timestamp);
+
+        const recordsHtml = calls.map(call => renderToolCallRecord(call, false)).join('');
+
+        return `<div class="tool-category">
+          <div class="tool-category-header" data-tool="${esc(name)}">
+            <span class="arrow">▼</span>
+            <span class="tool-call-name-tag" style="background:${color.bg};color:${color.fg}">${esc(name)}</span>
+            <span class="tool-category-count">${count}次</span>
+            <div class="tool-category-bar-wrap"><div class="tool-category-bar" style="width:${pct}%;background:${color.fg}"></div></div>
+            <span class="tool-category-pct">${pct}%</span>
+          </div>
+          <div class="tool-category-body" data-tool-body="${esc(name)}">
+            ${recordsHtml}
+          </div>
+        </div>`;
+      }).join('');
+
+      elToolSummaryContent.innerHTML = html;
+
+      // Bind collapse toggle
+      elToolSummaryContent.querySelectorAll('.tool-category-header').forEach(header => {
+        header.addEventListener('click', () => {
+          const toolName = header.dataset.tool;
+          header.classList.toggle('collapsed');
+          const body = elToolSummaryContent.querySelector(`[data-tool-body="${CSS.escape(toolName)}"]`);
+          if (body) body.classList.toggle('collapsed');
+        });
+      });
+
+      // Bind source link clicks
+      bindToolCallSourceClicks();
+    }
+
+    function renderTimelineView(allCalls) {
+      const html = `<div class="tool-timeline">${allCalls.map(call => {
+        const color = getToolColor(call.name);
+        return `<div class="tool-timeline-item">
+          ${renderToolCallRecord(call, true, color)}
+        </div>`;
+      }).join('')}</div>`;
+
+      elToolSummaryContent.innerHTML = html;
+      bindToolCallSourceClicks();
+    }
+
+    function renderToolCallRecord(call, showName, color) {
+      const colorStyle = color ? `background:${color.bg};color:${color.fg}` : '';
+      const nameTag = showName ? `<span class="tool-call-name-tag" style="${colorStyle}">${esc(call.name)}</span>` : '';
+      const inputStr = typeof call.input === 'string' ? call.input : JSON.stringify(call.input, null, 2);
+      // Truncate very long inputs for display
+      const displayInput = inputStr.length > 500 ? inputStr.slice(0, 500) + '\n...' : inputStr;
+      const copyB64 = btoa(unescape(encodeURIComponent(inputStr)));
+
+      return `<div class="tool-call-record">
+        <div class="tool-call-time">${formatTime(call.timestamp)}</div>
+        <div class="tool-call-detail">
+          <div style="margin-bottom:6px">
+            ${nameTag}
+            <span class="tool-call-source" data-msg-id="${call.msgId}">
+              <span class="seq">#${call.msgSeq}</span> ${esc(call.msgMethod)} ${esc(call.msgPath)}
+            </span>
+          </div>
+          <div class="tool-call-input">${esc(displayInput)}${inputStr.length > 500 ? `<button class="inline-copy" data-copy-b64="${copyB64}" title="复制完整内容" style="float:right;margin-top:4px">⧉</button>` : copyBtn(inputStr)}</div>
+        </div>
+      </div>`;
+    }
+
+    function bindToolCallSourceClicks() {
+      elToolSummaryContent.querySelectorAll('.tool-call-source').forEach(el => {
+        el.addEventListener('click', async () => {
+          const msgId = el.dataset.msgId;
+          closeToolSummary();
+          // Select the message in the list
+          const listItem = elMsgList.querySelector(`.msg-item[data-id="${msgId}"]`);
+          if (listItem) {
+            listItem.click();
+          } else {
+            selectedId = msgId;
+            const detail = await fetchMessageDetail(msgId);
+            renderDetail(detail);
+            renderMessageList();
+          }
+        });
+      });
+    }
 
     // --- Init ---
     fetchAllMessages().then(() => {
