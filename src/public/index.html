@@ -510,6 +510,137 @@
     .left-panel .toolbar button.tool-summary-btn:hover {
       background: #1a73e8; color: #fff;
     }
+
+    /* Toolbar button for duration stats */
+    .left-panel .toolbar button.duration-stats-btn {
+      color: #e65100; border-color: #e65100; font-weight: 500;
+    }
+    .left-panel .toolbar button.duration-stats-btn:hover {
+      background: #e65100; color: #fff;
+    }
+
+    /* Duration Stats Panel */
+    .duration-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4); z-index: 1000;
+      display: none; align-items: stretch; justify-content: center;
+    }
+    .duration-overlay.visible { display: flex; }
+    .duration-panel {
+      background: #fff; width: 720px; max-width: 90vw;
+      height: 100vh; display: flex; flex-direction: column;
+      box-shadow: -4px 0 24px rgba(0,0,0,0.15);
+    }
+    .duration-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px 20px; border-bottom: 1px solid #e0e0e0;
+      flex-shrink: 0;
+    }
+    .duration-header h2 { font-size: 16px; color: #333; font-weight: 600; margin: 0; }
+    .duration-stats-summary {
+      font-size: 12px; color: #888; margin-left: 8px;
+    }
+    .duration-close {
+      margin-left: auto; background: none; border: none;
+      font-size: 20px; color: #888; cursor: pointer; padding: 4px 8px;
+      border-radius: 4px; line-height: 1;
+    }
+    .duration-close:hover { background: #f0f2f5; color: #333; }
+    .duration-tabs {
+      display: flex; border-bottom: 1px solid #e0e0e0;
+      padding: 0 20px; flex-shrink: 0;
+    }
+    .duration-tabs button {
+      background: none; border: none; border-bottom: 2px solid transparent;
+      padding: 10px 16px; font-size: 13px; color: #666; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .duration-tabs button:hover { color: #e65100; }
+    .duration-tabs button.active { color: #e65100; border-bottom-color: #e65100; font-weight: bold; }
+    .duration-content {
+      flex: 1; overflow-y: auto; padding: 20px;
+    }
+    .duration-empty {
+      text-align: center; color: #aaa; padding: 60px 20px; font-size: 14px;
+    }
+
+    /* Duration - Stats Cards */
+    .duration-cards {
+      display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;
+    }
+    .duration-card {
+      flex: 1; min-width: 100px; padding: 12px 16px;
+      background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px;
+      text-align: center;
+    }
+    .duration-card .card-label { font-size: 11px; color: #888; margin-bottom: 4px; }
+    .duration-card .card-value { font-size: 20px; font-weight: bold; color: #333; }
+
+    /* Duration - Histogram */
+    .duration-histogram { margin-bottom: 16px; }
+    .duration-bucket {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+    }
+    .duration-bucket-label {
+      font-size: 12px; font-family: monospace; color: #555;
+      min-width: 80px; text-align: right; white-space: nowrap;
+    }
+    .duration-bucket-bar-wrap {
+      flex: 1; height: 24px; background: #f0f0f0; border-radius: 4px;
+      overflow: hidden; position: relative;
+    }
+    .duration-bucket-bar {
+      height: 100%; border-radius: 4px; transition: width 0.3s;
+      display: flex; align-items: center; justify-content: flex-end;
+      padding-right: 8px; min-width: 0;
+    }
+    .duration-bucket-count {
+      font-size: 11px; color: #fff; font-weight: bold; white-space: nowrap;
+    }
+    .duration-bucket-count.outside {
+      color: #888; position: absolute; left: calc(100% + 8px); top: 50%;
+      transform: translateY(-50%); white-space: nowrap;
+    }
+    .duration-bucket-pct {
+      font-size: 11px; color: #888; min-width: 40px; text-align: right;
+    }
+
+    /* Duration - Top 10 */
+    .duration-top10-list { display: flex; flex-direction: column; gap: 8px; }
+    .duration-top10-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; border: 1px solid #e0e0e0; border-radius: 8px;
+      transition: background 0.15s; cursor: pointer;
+    }
+    .duration-top10-item:hover { background: #f8f9fa; }
+    .duration-top10-rank {
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: bold; flex-shrink: 0;
+    }
+    .duration-top10-rank.r1 { background: #fce8e6; color: #c5221f; }
+    .duration-top10-rank.r2 { background: #fef7e0; color: #b06000; }
+    .duration-top10-rank.r3 { background: #fff3e0; color: #e65100; }
+    .duration-top10-rank.rn { background: #f0f2f5; color: #555; }
+    .duration-top10-dur {
+      font-size: 16px; font-weight: bold; color: #c5221f;
+      min-width: 70px; white-space: nowrap;
+    }
+    .duration-top10-info { flex: 1; min-width: 0; }
+    .duration-top10-path {
+      font-size: 12px; color: #333; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+    }
+    .duration-top10-meta {
+      font-size: 11px; color: #888; margin-top: 2px;
+    }
+    .duration-top10-status {
+      font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: bold;
+    }
+    .duration-top10-status.s2xx { background: #e6f4ea; color: #137333; }
+    .duration-top10-status.s4xx { background: #fef7e0; color: #b06000; }
+    .duration-top10-status.s5xx { background: #fce8e6; color: #c5221f; }
+    .duration-top10-status.s0xx { background: #f0f2f5; color: #555; }
   </style>
 </head>
 <body>
@@ -553,6 +684,7 @@
       </div>
       <div class="toolbar">
         <button id="btn-tool-summary" class="tool-summary-btn">工具总览</button>
+        <button id="btn-duration-stats" class="duration-stats-btn">耗时统计</button>
         <button id="btn-export">导出</button>
         <button id="btn-import">导入</button>
         <input type="file" id="file-import" accept=".json">
@@ -612,6 +744,24 @@
       </div>
       <div class="tool-summary-content" id="tool-summary-content">
         <div class="tool-summary-empty">暂无工具调用数据</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Duration Stats Panel -->
+  <div class="duration-overlay" id="duration-overlay">
+    <div class="duration-panel">
+      <div class="duration-header">
+        <h2>耗时统计</h2>
+        <span class="duration-stats-summary" id="duration-stats-summary"></span>
+        <button class="duration-close" id="duration-close">&times;</button>
+      </div>
+      <div class="duration-tabs">
+        <button class="active" data-view="distribution">耗时分布</button>
+        <button data-view="top10">Top 10 慢请求</button>
+      </div>
+      <div class="duration-content" id="duration-content">
+        <div class="duration-empty">暂无已完成的消息</div>
       </div>
     </div>
   </div>
@@ -2235,6 +2385,186 @@
           const msgId = el.dataset.msgId;
           closeToolSummary();
           // Select the message in the list
+          const listItem = elMsgList.querySelector(`.msg-item[data-id="${msgId}"]`);
+          if (listItem) {
+            listItem.click();
+            listItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } else {
+            selectedId = msgId;
+            const detail = await fetchMessageDetail(msgId);
+            renderDetail(detail);
+            renderMessageList();
+            requestAnimationFrame(() => {
+              const item = elMsgList.querySelector(`.msg-item[data-id="${msgId}"]`);
+              if (item) item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+          }
+        });
+      });
+    }
+
+    // ==================== Duration Stats ====================
+    const elDurationOverlay = document.getElementById('duration-overlay');
+    const elDurationContent = document.getElementById('duration-content');
+    const elDurationStatsSummary = document.getElementById('duration-stats-summary');
+    const elDurationClose = document.getElementById('duration-close');
+    const elBtnDurationStats = document.getElementById('btn-duration-stats');
+    let durationView = 'distribution'; // 'distribution' | 'top10'
+
+    const DURATION_BUCKETS = [
+      { label: '< 1s',    min: 0,     max: 1000,    color: '#137333' },
+      { label: '1-3s',    min: 1000,  max: 3000,    color: '#1a73e8' },
+      { label: '3-5s',    min: 3000,  max: 5000,    color: '#b06000' },
+      { label: '5-10s',   min: 5000,  max: 10000,   color: '#e65100' },
+      { label: '10-30s',  min: 10000, max: 30000,   color: '#d93025' },
+      { label: '30-60s',  min: 30000, max: 60000,   color: '#c5221f' },
+      { label: '> 60s',   min: 60000, max: Infinity, color: '#a50e0e' },
+    ];
+
+    function openDurationStats() {
+      elDurationOverlay.classList.add('visible');
+      buildAndRenderDurationStats();
+    }
+
+    function closeDurationStats() {
+      elDurationOverlay.classList.remove('visible');
+    }
+
+    elBtnDurationStats.addEventListener('click', openDurationStats);
+    elDurationClose.addEventListener('click', closeDurationStats);
+    elDurationOverlay.addEventListener('click', (e) => {
+      if (e.target === elDurationOverlay) closeDurationStats();
+    });
+
+    elDurationOverlay.querySelector('.duration-tabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-view]');
+      if (!btn) return;
+      durationView = btn.dataset.view;
+      elDurationOverlay.querySelectorAll('.duration-tabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderDurationView();
+    });
+
+    function buildDurationData() {
+      const completed = messages.filter(m => m.duration > 0);
+      if (completed.length === 0) return null;
+
+      const durations = completed.map(m => m.duration).sort((a, b) => a - b);
+      const total = durations.length;
+      const sum = durations.reduce((a, b) => a + b, 0);
+      const avg = sum / total;
+      const p50 = durations[Math.floor(total * 0.5)];
+      const p95 = durations[Math.floor(total * 0.95)];
+      const max = durations[total - 1];
+
+      // Bucket distribution
+      const buckets = DURATION_BUCKETS.map(b => ({
+        ...b,
+        messages: [],
+        count: 0,
+      }));
+      for (const m of completed) {
+        for (const b of buckets) {
+          if (m.duration >= b.min && m.duration < b.max) {
+            b.messages.push(m);
+            b.count++;
+            break;
+          }
+        }
+      }
+      const maxCount = Math.max(...buckets.map(b => b.count), 1);
+
+      // Top 10
+      const top10 = [...completed].sort((a, b) => b.duration - a.duration).slice(0, 10);
+
+      return { completed, durations, total, avg, p50, p95, max, buckets, maxCount, top10 };
+    }
+
+    function buildAndRenderDurationStats() {
+      renderDurationView();
+    }
+
+    function renderDurationView() {
+      const data = buildDurationData();
+      if (!data) {
+        elDurationStatsSummary.textContent = '';
+        elDurationContent.innerHTML = '<div class="duration-empty">暂无已完成的消息</div>';
+        return;
+      }
+
+      elDurationStatsSummary.textContent = `${data.total} 条消息`;
+
+      if (durationView === 'distribution') {
+        renderDistributionView(data);
+      } else {
+        renderTop10View(data);
+      }
+    }
+
+    function formatDuration(ms) {
+      if (ms < 1000) return ms + 'ms';
+      return (ms / 1000).toFixed(2) + 's';
+    }
+
+    function renderDistributionView(data) {
+      const { total, avg, p50, p95, buckets, maxCount } = data;
+
+      const cardsHtml = `<div class="duration-cards">
+        <div class="duration-card"><div class="card-label">消息数</div><div class="card-value">${total}</div></div>
+        <div class="duration-card"><div class="card-label">平均耗时</div><div class="card-value">${formatDuration(avg)}</div></div>
+        <div class="duration-card"><div class="card-label">P50</div><div class="card-value">${formatDuration(p50)}</div></div>
+        <div class="duration-card"><div class="card-label">P95</div><div class="card-value">${formatDuration(p95)}</div></div>
+      </div>`;
+
+      const histogramHtml = `<div class="duration-histogram">${buckets.map(b => {
+        const pct = total > 0 ? Math.round(b.count / total * 100) : 0;
+        const barWidth = maxCount > 0 ? Math.max(b.count / maxCount * 100, b.count > 0 ? 8 : 0) : 0;
+        const countInside = barWidth > 30;
+        return `<div class="duration-bucket">
+          <span class="duration-bucket-label">${b.label}</span>
+          <div class="duration-bucket-bar-wrap">
+            <div class="duration-bucket-bar" style="width:${barWidth}%;background:${b.color}">
+              ${countInside ? `<span class="duration-bucket-count">${b.count}</span>` : ''}
+            </div>
+            ${!countInside && b.count > 0 ? `<span class="duration-bucket-count outside">${b.count}</span>` : ''}
+          </div>
+          <span class="duration-bucket-pct">${pct}%</span>
+        </div>`;
+      }).join('')}</div>`;
+
+      elDurationContent.innerHTML = cardsHtml + histogramHtml;
+    }
+
+    function renderTop10View(data) {
+      const { top10 } = data;
+      if (top10.length === 0) {
+        elDurationContent.innerHTML = '<div class="duration-empty">暂无已完成的消息</div>';
+        return;
+      }
+
+      const listHtml = `<div class="duration-top10-list">${top10.map((m, i) => {
+        const rank = i + 1;
+        const rankClass = rank === 1 ? 'r1' : rank === 2 ? 'r2' : rank === 3 ? 'r3' : 'rn';
+        const path = m.proxyMode && m.proxyMode !== 'reverse' ? m.url : m.path;
+        const statusClass = m.responseStatus >= 500 ? 's5xx' : m.responseStatus >= 400 ? 's4xx' : m.responseStatus >= 200 ? 's2xx' : 's0xx';
+        return `<div class="duration-top10-item" data-msg-id="${m.id}">
+          <div class="duration-top10-rank ${rankClass}">${rank}</div>
+          <div class="duration-top10-dur">${formatDuration(m.duration)}</div>
+          <div class="duration-top10-info">
+            <div class="duration-top10-path">${esc(m.method)} ${esc(path)}</div>
+            <div class="duration-top10-meta">${formatTime(m.timestamp)}</div>
+          </div>
+          <span class="duration-top10-status ${statusClass}">${m.responseStatus}</span>
+        </div>`;
+      }).join('')}</div>`;
+
+      elDurationContent.innerHTML = listHtml;
+
+      // Bind click to scroll to message
+      elDurationContent.querySelectorAll('.duration-top10-item').forEach(el => {
+        el.addEventListener('click', async () => {
+          const msgId = el.dataset.msgId;
+          closeDurationStats();
           const listItem = elMsgList.querySelector(`.msg-item[data-id="${msgId}"]`);
           if (listItem) {
             listItem.click();
