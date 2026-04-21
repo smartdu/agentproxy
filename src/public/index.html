@@ -2141,8 +2141,8 @@
       elToolSummaryStats.textContent = `${totalTypes} 种工具 · ${totalCalls} 次调用`;
 
       if (toolSummaryView === 'category') {
-        toolSummaryAllExpanded = true;
-        elToolSummaryToggle.textContent = '全部收起';
+        toolSummaryAllExpanded = false;
+        elToolSummaryToggle.textContent = '全部展开';
         elToolSummaryToggle.style.display = '';
         renderCategoryView(groups, totalCalls);
       } else {
@@ -2165,14 +2165,14 @@
         const recordsHtml = calls.map(call => renderToolCallRecord(call, false)).join('');
 
         return `<div class="tool-category">
-          <div class="tool-category-header" data-tool="${esc(name)}">
+          <div class="tool-category-header collapsed" data-tool="${esc(name)}">
             <span class="arrow">▼</span>
             <span class="tool-call-name-tag" style="background:${color.bg};color:${color.fg}">${esc(name)}</span>
             <span class="tool-category-count">${count}次</span>
             <div class="tool-category-bar-wrap"><div class="tool-category-bar" style="width:${pct}%;background:${color.fg}"></div></div>
             <span class="tool-category-pct">${pct}%</span>
           </div>
-          <div class="tool-category-body" data-tool-body="${esc(name)}">
+          <div class="tool-category-body collapsed" data-tool-body="${esc(name)}">
             ${recordsHtml}
           </div>
         </div>`;
