@@ -649,6 +649,19 @@
     .left-panel .toolbar button.timeline-btn:hover {
       background: #7627bb; color: #fff;
     }
+    /* Toolbar buttons: export & import */
+    .left-panel .toolbar button.export-btn {
+      color: #137333; border-color: #137333; font-weight: 500;
+    }
+    .left-panel .toolbar button.export-btn:hover {
+      background: #137333; color: #fff;
+    }
+    .left-panel .toolbar button.import-btn {
+      color: #558b2f; border-color: #558b2f; font-weight: 500;
+    }
+    .left-panel .toolbar button.import-btn:hover {
+      background: #558b2f; color: #fff;
+    }
 
     /* Timeline Panel */
     .timeline-overlay {
@@ -765,9 +778,9 @@
       <div class="toolbar">
         <button id="btn-tool-summary" class="tool-summary-btn">工具总览</button>
         <button id="btn-duration-stats" class="duration-stats-btn">耗时统计</button>
-        <button id="btn-timeline" class="timeline-btn">交互时间线</button>
-        <button id="btn-export">导出</button>
-        <button id="btn-import">导入</button>
+        <button id="btn-timeline" class="timeline-btn">模型输出</button>
+        <button id="btn-export" class="export-btn">导出</button>
+        <button id="btn-import" class="import-btn">导入</button>
         <input type="file" id="file-import" accept=".json">
       </div>
       <div class="msg-list" id="msg-list">
@@ -851,7 +864,7 @@
   <div class="timeline-overlay" id="timeline-overlay">
     <div class="timeline-panel">
       <div class="timeline-header">
-        <h2>交互时间线</h2>
+        <h2>模型输出</h2>
         <span class="timeline-stats" id="timeline-stats"></span>
         <button class="timeline-close" id="timeline-close">&times;</button>
       </div>
@@ -2733,7 +2746,7 @@
       return;
       }
 
-      elTimelineContent.innerHTML = '<div class="timeline-loading">正在加载交互数据...</div>';
+      elTimelineContent.innerHTML = '<div class="timeline-loading">正在加载模型输出数据...</div>';
 
       const items = [];
       const fetchPromises = messages.filter(m => m.duration > 0).map(async (m) => {
