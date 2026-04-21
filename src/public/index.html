@@ -1503,8 +1503,9 @@
 
     function parseSSEChunks(sseChunks) {
       // Concatenate all chunk data and parse into SSE events
+      // Use join('') because each chunk's data already includes trailing \n
       const events = [];
-      const allData = sseChunks.map(c => c.data).join('\n');
+      const allData = sseChunks.map(c => c.data).join('');
       const blocks = allData.split(/\n\n+/);
       for (const block of blocks) {
         if (!block.trim()) continue;
@@ -1605,12 +1606,12 @@
     }
 
     function detectFormat(path) {
-      return /chat\/completions/i.test(path || '') ? 'openai' : 'anthropic';
+      return /anthropic/i.test(path || '') ? 'anthropic' : 'openai';
     }
 
     function detectSSEFormat(sseChunks) {
       if (!sseChunks || sseChunks.length === 0) return 'unknown';
-      const allData = sseChunks.map(c => c.data).join('\n');
+      const allData = sseChunks.map(c => c.data).join('');
       // Anthropic format has 'event:' lines (e.g. event: message_start)
       // DeepSeek uses Anthropic format but appends 'data: [DONE]' at the end
       if (allData.includes('event:')) return 'anthropic';
@@ -1620,7 +1621,7 @@
     }
 
     function reconstructOpenAISSEMessage(sseChunks) {
-      const allData = sseChunks.map(c => c.data).join('\n');
+      const allData = sseChunks.map(c => c.data).join('');
       const lines = allData.split('\n');
       const msg = { id: '', model: '', role: 'assistant', content: [], stopReason: '', usage: {}, isComplete: false };
       let textContent = '';
@@ -1677,7 +1678,7 @@
 
     function parseOpenAISSEChunks(sseChunks) {
       const chunks = [];
-      const allData = sseChunks.map(c => c.data).join('\n');
+      const allData = sseChunks.map(c => c.data).join('');
       for (const line of allData.split('\n')) {
         if (!line.startsWith('data:')) continue;
         const dataStr = line.slice(5).trim();
