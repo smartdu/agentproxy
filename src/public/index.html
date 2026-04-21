@@ -2728,9 +2728,9 @@
 
     async function buildAndRenderTimeline() {
       if (messages.length === 0) {
-        timelineData = null;
-        renderTimelineView();
-        return;
+      timelineData = null;
+      renderInteractionView();
+      return;
       }
 
       elTimelineContent.innerHTML = '<div class="timeline-loading">正在加载交互数据...</div>';
@@ -2759,10 +2759,10 @@
       await Promise.all(fetchPromises);
       items.sort((a, b) => a.timestamp - b.timestamp);
       timelineData = items;
-      renderTimelineView();
+      renderInteractionView();
     }
 
-    function renderTimelineView() {
+    function renderInteractionView() {
       if (!timelineData || timelineData.length === 0) {
         elTimelineStats.textContent = '';
         elTimelineContent.innerHTML = '<div class="timeline-empty">暂无模型输出</div>';
