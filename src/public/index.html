@@ -641,6 +641,127 @@
     .duration-top10-status.s4xx { background: #fef7e0; color: #b06000; }
     .duration-top10-status.s5xx { background: #fce8e6; color: #c5221f; }
     .duration-top10-status.s0xx { background: #f0f2f5; color: #555; }
+
+    /* Toolbar button for timeline */
+    .left-panel .toolbar button.timeline-btn {
+      color: #7627bb; border-color: #7627bb; font-weight: 500;
+    }
+    .left-panel .toolbar button.timeline-btn:hover {
+      background: #7627bb; color: #fff;
+    }
+
+    /* Timeline Panel */
+    .timeline-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4); z-index: 1000;
+      display: none; align-items: stretch; justify-content: center;
+    }
+    .timeline-overlay.visible { display: flex; }
+    .timeline-panel {
+      background: #fff; width: 800px; max-width: 90vw;
+      height: 100vh; display: flex; flex-direction: column;
+      box-shadow: -4px 0 24px rgba(0,0,0,0.15);
+    }
+    .timeline-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px 20px; border-bottom: 1px solid #e0e0e0;
+      flex-shrink: 0;
+    }
+    .timeline-header h2 { font-size: 16px; color: #333; font-weight: 600; margin: 0; }
+    .timeline-stats { font-size: 12px; color: #888; margin-left: 8px; }
+    .timeline-close {
+      margin-left: auto; background: none; border: none;
+      font-size: 20px; color: #888; cursor: pointer; padding: 4px 8px;
+      border-radius: 4px; line-height: 1;
+    }
+    .timeline-close:hover { background: #f0f2f5; color: #333; }
+    .timeline-filters {
+      display: flex; gap: 0; padding: 8px 20px; border-bottom: 1px solid #e0e0e0;
+      flex-shrink: 0;
+    }
+    .timeline-filters button {
+      background: #fff; border: 1px solid #ccc; padding: 4px 12px;
+      font-size: 12px; cursor: pointer; color: #666; transition: all 0.15s;
+    }
+    .timeline-filters button:first-child { border-radius: 4px 0 0 4px; }
+    .timeline-filters button:last-child { border-radius: 0 4px 4px 0; }
+    .timeline-filters button + button { border-left: none; }
+    .timeline-filters button.active { background: #7627bb; color: #fff; border-color: #7627bb; }
+    .timeline-filters button:not(.active):hover { background: #f3e8fd; color: #7627bb; }
+    .timeline-content {
+      flex: 1; overflow-y: auto; padding: 20px;
+    }
+    .timeline-empty {
+      text-align: center; color: #aaa; padding: 60px 20px; font-size: 14px;
+    }
+    .timeline-loading {
+      text-align: center; color: #888; padding: 60px 20px; font-size: 14px;
+    }
+
+    /* Chat bubbles */
+    .timeline-chat { display: flex; flex-direction: column; gap: 16px; }
+    .timeline-row { display: flex; gap: 0; }
+    .timeline-row.user { justify-content: flex-end; }
+    .timeline-row.model { justify-content: flex-start; }
+    .timeline-bubble {
+      max-width: 75%; padding: 12px 16px; border-radius: 12px;
+      font-size: 13px; line-height: 1.6; cursor: pointer;
+      transition: box-shadow 0.15s; position: relative;
+    }
+    .timeline-bubble:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+    .timeline-row.user .timeline-bubble {
+      background: #e8f0fe; color: #1a1a1a;
+      border-bottom-right-radius: 4px;
+    }
+    .timeline-row.model .timeline-bubble {
+      background: #f0f2f5; color: #1a1a1a;
+      border-bottom-left-radius: 4px;
+    }
+    .timeline-bubble-meta {
+      font-size: 11px; color: #888; margin-top: 8px;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .timeline-row.user .timeline-bubble-meta { justify-content: flex-end; }
+    .timeline-bubble-meta .meta-time { font-family: monospace; }
+    .timeline-bubble-meta .meta-path {
+      max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      color: #1a73e8; cursor: pointer;
+    }
+    .timeline-bubble-meta .meta-path:hover { text-decoration: underline; }
+    .timeline-bubble-meta .meta-duration { color: #e65100; font-weight: 500; }
+    .timeline-bubble-meta .meta-status {
+      font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: bold;
+    }
+    .timeline-bubble-meta .meta-status.s2xx { background: #e6f4ea; color: #137333; }
+    .timeline-bubble-meta .meta-status.s4xx { background: #fef7e0; color: #b06000; }
+    .timeline-bubble-meta .meta-status.s5xx { background: #fce8e6; color: #c5221f; }
+    .timeline-bubble-meta .meta-status.s0xx { background: #f0f2f5; color: #555; }
+    .timeline-tools {
+      display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px;
+    }
+    .timeline-tool-tag {
+      font-size: 11px; font-weight: bold; padding: 1px 8px; border-radius: 3px;
+      background: #fff3e0; color: #e65100;
+    }
+    .timeline-text { white-space: pre-wrap; word-break: break-word; }
+    .timeline-text.truncated { max-height: 200px; overflow: hidden; position: relative; }
+    .timeline-text.truncated::after {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+      height: 40px; background: linear-gradient(transparent, #f0f2f5);
+    }
+    .timeline-row.user .timeline-text.truncated::after {
+      background: linear-gradient(transparent, #e8f0fe);
+    }
+    .timeline-expand-btn {
+      font-size: 11px; color: #7627bb; cursor: pointer;
+      background: none; border: none; padding: 4px 0; font-weight: 500;
+    }
+    .timeline-expand-btn:hover { text-decoration: underline; }
+    .timeline-role-label {
+      font-size: 11px; font-weight: bold; margin-bottom: 4px;
+    }
+    .timeline-row.user .timeline-role-label { color: #1a73e8; text-align: right; }
+    .timeline-row.model .timeline-role-label { color: #555; }
   </style>
 </head>
 <body>
@@ -685,6 +806,7 @@
       <div class="toolbar">
         <button id="btn-tool-summary" class="tool-summary-btn">工具总览</button>
         <button id="btn-duration-stats" class="duration-stats-btn">耗时统计</button>
+        <button id="btn-timeline" class="timeline-btn">交互时间线</button>
         <button id="btn-export">导出</button>
         <button id="btn-import">导入</button>
         <input type="file" id="file-import" accept=".json">
@@ -762,6 +884,25 @@
       </div>
       <div class="duration-content" id="duration-content">
         <div class="duration-empty">暂无已完成的消息</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline Panel -->
+  <div class="timeline-overlay" id="timeline-overlay">
+    <div class="timeline-panel">
+      <div class="timeline-header">
+        <h2>交互时间线</h2>
+        <span class="timeline-stats" id="timeline-stats"></span>
+        <button class="timeline-close" id="timeline-close">&times;</button>
+      </div>
+      <div class="timeline-filters">
+        <button class="active" data-filter="all">全部</button>
+        <button data-filter="user">仅用户</button>
+        <button data-filter="model">仅模型</button>
+      </div>
+      <div class="timeline-content" id="timeline-content">
+        <div class="timeline-empty">暂无已完成的消息</div>
       </div>
     </div>
   </div>
@@ -2581,6 +2722,250 @@
           }
         });
       });
+    }
+
+    // ==================== Interaction Timeline ====================
+    const elTimelineOverlay = document.getElementById('timeline-overlay');
+    const elTimelineContent = document.getElementById('timeline-content');
+    const elTimelineStats = document.getElementById('timeline-stats');
+    const elTimelineClose = document.getElementById('timeline-close');
+    const elBtnTimeline = document.getElementById('btn-timeline');
+    let timelineFilter = 'all'; // 'all' | 'user' | 'model'
+    let timelineData = null; // cached parsed data
+
+    function openTimeline() {
+      elTimelineOverlay.classList.add('visible');
+      buildAndRenderTimeline();
+    }
+
+    function closeTimeline() {
+      elTimelineOverlay.classList.remove('visible');
+    }
+
+    elBtnTimeline.addEventListener('click', openTimeline);
+    elTimelineClose.addEventListener('click', closeTimeline);
+    elTimelineOverlay.addEventListener('click', (e) => {
+      if (e.target === elTimelineOverlay) closeTimeline();
+    });
+
+    elTimelineOverlay.querySelector('.timeline-filters').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-filter]');
+      if (!btn) return;
+      timelineFilter = btn.dataset.filter;
+      elTimelineOverlay.querySelectorAll('.timeline-filters button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderTimelineView();
+    });
+
+    function extractUserContent(detail) {
+      const format = detectFormat(detail.path);
+      let parsed = null;
+      try { parsed = JSON.parse(detail.requestBody); } catch { return null; }
+
+      if (format === 'anthropic') {
+        if (!parsed.messages || !Array.isArray(parsed.messages)) return null;
+        const lastMsg = parsed.messages[parsed.messages.length - 1];
+        if (!lastMsg) return null;
+        const content = lastMsg.content;
+        if (typeof content === 'string') return content;
+        if (Array.isArray(content)) {
+          return content.filter(c => c.type === 'text').map(c => c.text).join('\n');
+        }
+        return null;
+      } else {
+        // OpenAI format
+        if (!parsed.messages || !Array.isArray(parsed.messages)) return null;
+        const lastMsg = parsed.messages[parsed.messages.length - 1];
+        if (!lastMsg) return null;
+        const content = lastMsg.content;
+        if (typeof content === 'string') return content;
+        if (Array.isArray(content)) {
+          return content.filter(c => c.type === 'text').map(c => c.text).join('\n');
+        }
+        return null;
+      }
+    }
+
+    function extractModelContent(detail) {
+      const format = detectFormat(detail.path);
+      let parsed = null;
+      if (detail.isSSE && detail.sseChunks && detail.sseChunks.length > 0) {
+        parsed = format === 'openai'
+          ? reconstructOpenAISSEMessage(detail.sseChunks)
+          : reconstructSSEMessage(detail.sseChunks);
+      } else if (detail.responseBody) {
+        parsed = format === 'openai'
+          ? parseOpenAIResponse(detail.responseBody)
+          : parseAnthropicResponse(detail.responseBody);
+        if (!parsed) parsed = parseOpenAIResponse(detail.responseBody);
+        if (!parsed) parsed = parseAnthropicResponse(detail.responseBody);
+      }
+      if (!parsed || !parsed.content) return null;
+
+      const textParts = [];
+      const toolNames = [];
+      for (const block of parsed.content) {
+        if (block.type === 'text' && block.text) {
+          textParts.push(block.text);
+        } else if (block.type === 'tool_use') {
+          toolNames.push(block.name || 'unknown');
+        }
+      }
+      return { text: textParts.join('\n'), toolNames };
+    }
+
+    async function buildAndRenderTimeline() {
+      if (messages.length === 0) {
+        timelineData = null;
+        renderTimelineView();
+        return;
+      }
+
+      elTimelineContent.innerHTML = '<div class="timeline-loading">正在加载交互数据...</div>';
+
+      const items = [];
+      const fetchPromises = messages.filter(m => m.duration > 0).map(async (m) => {
+        const detail = await fetchMessageDetail(m.id);
+        if (!detail) return;
+
+        const userContent = extractUserContent(detail);
+        const modelResult = extractModelContent(detail);
+        const path = m.proxyMode && m.proxyMode !== 'reverse' ? m.url : m.path;
+
+        items.push({
+          id: m.id,
+          seq: m.seq,
+          timestamp: m.timestamp,
+          method: m.method,
+          path,
+          responseStatus: m.responseStatus,
+          duration: m.duration,
+          userContent,
+          modelText: modelResult ? modelResult.text : '',
+          toolNames: modelResult ? modelResult.toolNames : [],
+        });
+      });
+
+      await Promise.all(fetchPromises);
+      items.sort((a, b) => a.timestamp - b.timestamp);
+      timelineData = items;
+      renderTimelineView();
+    }
+
+    function renderTimelineView() {
+      if (!timelineData || timelineData.length === 0) {
+        elTimelineStats.textContent = '';
+        elTimelineContent.innerHTML = '<div class="timeline-empty">暂无已完成的消息</div>';
+        return;
+      }
+
+      const filtered = timelineData.filter(item => {
+        if (timelineFilter === 'user') return !!item.userContent;
+        if (timelineFilter === 'model') return !!item.modelText || item.toolNames.length > 0;
+        return true;
+      });
+
+      elTimelineStats.textContent = `${filtered.length} 轮对话`;
+
+      if (filtered.length === 0) {
+        elTimelineContent.innerHTML = '<div class="timeline-empty">无匹配的消息</div>';
+        return;
+      }
+
+      const chatHtml = filtered.map(item => {
+        const rows = [];
+
+        // User bubble
+        if (item.userContent && (timelineFilter === 'all' || timelineFilter === 'user')) {
+          rows.push(renderUserBubble(item));
+        }
+
+        // Model bubble
+        if ((item.modelText || item.toolNames.length > 0) && (timelineFilter === 'all' || timelineFilter === 'model')) {
+          rows.push(renderModelBubble(item));
+        }
+
+        return rows.join('');
+      }).join('');
+
+      elTimelineContent.innerHTML = `<div class="timeline-chat">${chatHtml}</div>`;
+
+      // Bind bubble click to scroll to message
+      elTimelineContent.querySelectorAll('.timeline-bubble[data-msg-id]').forEach(el => {
+        el.addEventListener('click', async (e) => {
+          // Don't navigate when clicking expand button or path link
+          if (e.target.closest('.timeline-expand-btn')) return;
+          const msgId = el.dataset.msgId;
+          closeTimeline();
+          const listItem = elMsgList.querySelector(`.msg-item[data-id="${msgId}"]`);
+          if (listItem) {
+            listItem.click();
+            listItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } else {
+            selectedId = msgId;
+            const detail = await fetchMessageDetail(msgId);
+            renderDetail(detail);
+            renderMessageList();
+            requestAnimationFrame(() => {
+              const item = elMsgList.querySelector(`.msg-item[data-id="${msgId}"]`);
+              if (item) item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+          }
+        });
+      });
+
+      // Bind expand buttons
+      elTimelineContent.querySelectorAll('.timeline-expand-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const textEl = btn.previousElementSibling;
+          if (textEl) {
+            textEl.classList.remove('truncated');
+            btn.remove();
+          }
+        });
+      });
+    }
+
+    function renderUserBubble(item) {
+      const text = item.userContent || '';
+      const truncated = text.length > 500;
+      const displayText = truncated ? text.slice(0, 500) : text;
+      return `<div class="timeline-row user">
+        <div class="timeline-bubble" data-msg-id="${item.id}">
+          <div class="timeline-role-label">用户</div>
+          <div class="timeline-text${truncated ? ' truncated' : ''}">${esc(displayText)}</div>
+          ${truncated ? '<button class="timeline-expand-btn">展开全文</button>' : ''}
+          <div class="timeline-bubble-meta">
+            <span class="meta-time">${formatTime(item.timestamp)}</span>
+            <span class="meta-path" title="${esc(item.method)} ${esc(item.path)}">${esc(item.method)} ${esc(item.path)}</span>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function renderModelBubble(item) {
+      const text = item.modelText || '';
+      const truncated = text.length > 500;
+      const displayText = truncated ? text.slice(0, 500) : text;
+      const toolsHtml = item.toolNames.length > 0
+        ? `<div class="timeline-tools">${item.toolNames.map(n => `<span class="timeline-tool-tag">${esc(n)}</span>`).join('')}</div>`
+        : '';
+      const statusClass = item.responseStatus >= 500 ? 's5xx' : item.responseStatus >= 400 ? 's4xx' : item.responseStatus >= 200 ? 's2xx' : 's0xx';
+
+      return `<div class="timeline-row model">
+        <div class="timeline-bubble" data-msg-id="${item.id}">
+          <div class="timeline-role-label">模型</div>
+          ${text ? `<div class="timeline-text${truncated ? ' truncated' : ''}">${esc(displayText)}</div>${truncated ? '<button class="timeline-expand-btn">展开全文</button>' : ''}` : ''}
+          ${toolsHtml}
+          <div class="timeline-bubble-meta">
+            <span class="meta-time">${formatTime(item.timestamp)}</span>
+            <span class="meta-path" title="${esc(item.method)} ${esc(item.path)}">${esc(item.method)} ${esc(item.path)}</span>
+            <span class="meta-duration">${formatDuration(item.duration)}</span>
+            <span class="meta-status ${statusClass}">${item.responseStatus}</span>
+          </div>
+        </div>
+      </div>`;
     }
 
     // --- Init ---
