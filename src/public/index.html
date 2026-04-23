@@ -133,7 +133,8 @@
     }
     .proxy-mode-badge.fwd { background: #e6f4ea; color: #137333; }
     .proxy-mode-badge.tunnel { background: #f3e8fd; color: #7627bb; }
-    .msg-item .msg-path { font-size: 13px; color: #333; word-break: break-all; }
+    .msg-item .msg-line { display: flex; align-items: center; min-width: 0; }
+    .msg-item .msg-path { font-size: 13px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; min-width: 0; flex: 1; }
     .msg-item .msg-meta {
       display: flex; gap: 10px; margin-top: 4px; font-size: 11px; color: #999;
     }
@@ -1355,10 +1356,10 @@
         const displayPath = m.proxyMode && m.proxyMode !== 'reverse' ? m.url : m.path;
         const isSelected = m.id === selectedId;
         const newHtml = `
-          <div>
+          <div class="msg-line">
             <span class="msg-seq">#${m.seq || ''}</span>
             <span class="msg-method ${m.method}">${m.method}</span>
-            <span class="msg-path">${displayPath}</span>
+            <span class="msg-path" title="${esc(displayPath)}">${esc(displayPath)}</span>
             ${m.isSSE ? '<span class="sse-badge">SSE</span>' : ''}
             ${proxyModeBadge}
           </div>
