@@ -1586,7 +1586,7 @@
           </table>
         `;
         const contentTabs = renderContentBlocks(reconstructed.content, msg.responseBody);
-        const allTabs = [{ label: '消息概览', content: overviewHtml }, ...contentTabs];
+        const allTabs = [{ label: '消息概览', content: overviewHtml }, ...(Array.isArray(contentTabs) ? contentTabs : [{ label: '内容', content: contentTabs }])];
         const rawEventsHtml = rawEvents.map((evt, i) =>
           `<div style="margin-bottom:6px"><span style="color:#888;font-size:11px">[${i + 1}]</span> <span style="color:#1a73e8;font-size:11px">${esc(evt.event)}</span><div class="parse-text" style="margin-top:2px">${esc(typeof evt.data === 'string' ? evt.data : JSON.stringify(evt.data, null, 2))}</div></div>`
         ).join('');
@@ -2123,13 +2123,13 @@
           contentHtml = msg.content.map(block => {
             const blockCopy = block.type === 'text' ? (block.text || '')
               : block.type === 'thinking' ? (block.thinking || '')
-              : block.type === 'tool_use' ? JSON.stringify(block.input, null, 2)
+              : block.type === 'tool_use' ? (block.input == null ? '{}' : JSON.stringify(block.input, null, 2))
               : block.type === 'tool_result' ? (typeof block.content === 'string' ? block.content : JSON.stringify(block.content, null, 2))
               : JSON.stringify(block, null, 2);
             if (block.type === 'text') return `<div class="parse-card"><span class="role-badge assistant">Text</span>${copyBtn(blockCopy)}<div class="parse-text" style="margin-top:6px">${esc(block.text || '')}</div></div>`;
             if (block.type === 'thinking') return `<div class="parse-card" style="background:#f0f0f0"><span class="role-badge system">Thinking</span>${copyBtn(blockCopy)}<div class="parse-text" style="margin-top:6px">${esc(block.thinking || '')}</div></div>`;
             if (block.type === 'image') return `<div class="parse-card"><span class="role-badge system">Image</span> ${esc(block.source?.type || 'image')}</div>`;
-            if (block.type === 'tool_use') return `<div class="parse-card"><span class="role-badge assistant">Tool Use</span> <b>${esc(block.name || '')}</b>${copyBtn(blockCopy)}<div class="tool-input" style="margin-top:6px">${esc(JSON.stringify(block.input, null, 2))}</div></div>`;
+            if (block.type === 'tool_use') { const inp = block.input == null ? '{}' : JSON.stringify(block.input, null, 2); return `<div class="parse-card"><span class="role-badge assistant">Tool Use</span> <b>${esc(block.name || '')}</b>${copyBtn(blockCopy)}<div class="tool-input" style="margin-top:6px">${esc(inp)}</div></div>`; }
             if (block.type === 'tool_result') return `<div class="parse-card"><span class="role-badge user">Tool Result</span>${block.is_error ? ' <span style="color:#c5221f">Error</span>' : ''}${copyBtn(blockCopy)}<div class="tool-input" style="margin-top:6px">${esc(typeof block.content === 'string' ? block.content : JSON.stringify(block.content, null, 2))}</div></div>`;
             return `<div class="parse-card">${copyBtn(blockCopy)}<div class="tool-input">${esc(JSON.stringify(block, null, 2))}</div></div>`;
           }).join('');
@@ -2159,7 +2159,8 @@
         } else if (block.type === 'tool_use') {
           toolIdx++;
           label = `工具调用 ${toolIdx}`;
-          copyText = typeof block.input === 'string' ? block.input : JSON.stringify(block.input, null, 2);
+          const inputStr = block.input == null ? '{}' : (typeof block.input === 'string' ? block.input : JSON.stringify(block.input, null, 2));
+          copyText = inputStr;
           html = `<div class="parse-card"><span class="role-badge assistant">Tool Use</span> <b>${esc(block.name || '')}</b>${copyBtn(copyText)}<div class="tool-input" style="margin-top:6px">${esc(copyText)}</div></div>`;
         } else if (block.type === 'thinking') {
           thinkIdx++;
