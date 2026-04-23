@@ -1794,8 +1794,15 @@
     function reconstructSSEMessage(sseChunks) {
       const events = parseSSEChunks(sseChunks);
       const msg = { id: '', model: '', role: 'assistant', content: [], stopReason: '', usage: {}, isComplete: false };
-      let currentBlock = null;
-      let currentInputJson = '';
+      const activeBlocks = {};   // index -> { block, inputJson }
+      const blockOrder = [];     // ordered list of indices
+      let fallbackIdx = -1;      // for events without index field
+
+      function getOrCreateIdx(evtData) {
+        if (evtData.index !== undefined) return evtData.index;
+        // Fallback: if no index, auto-assign based on content_block_start sequence
+        return ++fallbackIdx;
+      }
 
       for (const evt of events) {
         if (evt.event === 'message_start' && evt.data && evt.data.message) {
@@ -1805,42 +1812,49 @@
           msg.usage.inputTokens = evt.data.message.usage?.input_tokens || 0;
         } else if (evt.event === 'content_block_start' && evt.data) {
           const block = evt.data.content_block;
+          const idx = getOrCreateIdx(evt.data);
           if (block) {
+            let newBlock;
             if (block.type === 'text') {
-              currentBlock = { type: 'text', text: block.text || '' };
+              newBlock = { type: 'text', text: block.text || '' };
             } else if (block.type === 'tool_use') {
-              currentBlock = { type: 'tool_use', id: block.id || '', name: block.name || '', input: '' };
-              currentInputJson = '';
+              newBlock = { type: 'tool_use', id: block.id || '', name: block.name || '', input: '' };
             } else if (block.type === 'thinking') {
-              currentBlock = { type: 'thinking', thinking: block.thinking || '' };
+              newBlock = { type: 'thinking', thinking: block.thinking || '' };
             } else {
-              currentBlock = { type: block.type, raw: block };
+              newBlock = { type: block.type, raw: block };
             }
+            activeBlocks[idx] = { block: newBlock, inputJson: '' };
+            if (!blockOrder.includes(idx)) blockOrder.push(idx);
           }
-        } else if (evt.event === 'content_block_delta' && evt.data && currentBlock) {
+        } else if (evt.event === 'content_block_delta' && evt.data) {
           const delta = evt.data.delta;
-          if (delta) {
+          const idx = evt.data.index !== undefined ? evt.data.index : fallbackIdx;
+          if (delta && idx >= 0 && activeBlocks[idx]) {
+            const entry = activeBlocks[idx];
+            const currentBlock = entry.block;
             if (delta.type === 'text_delta' && currentBlock.type === 'text') {
               currentBlock.text += delta.text || '';
             } else if (delta.type === 'input_json_delta' && currentBlock.type === 'tool_use') {
-              currentInputJson += delta.partial_json || '';
+              entry.inputJson += delta.partial_json || '';
             } else if (delta.type === 'thinking_delta' && currentBlock.type === 'thinking') {
               currentBlock.thinking += delta.thinking || '';
             }
             // Ignore other delta types (signature_delta, etc.)
           }
-        } else if (evt.event === 'content_block_stop') {
-          if (currentBlock) {
-            if (currentBlock.type === 'tool_use') {
+        } else if (evt.event === 'content_block_stop' && evt.data) {
+          const idx = evt.data.index !== undefined ? evt.data.index : fallbackIdx;
+          if (idx >= 0 && activeBlocks[idx]) {
+            const entry = activeBlocks[idx];
+            if (entry.block.type === 'tool_use') {
               try {
-                currentBlock.input = currentInputJson ? JSON.parse(currentInputJson) : {};
+                entry.block.input = entry.inputJson ? JSON.parse(entry.inputJson) : {};
               } catch {
-                currentBlock.input = currentInputJson;
+                entry.block.input = entry.inputJson;
               }
-              currentInputJson = '';
             }
-            msg.content.push(currentBlock);
-            currentBlock = null;
+            msg.content.push(entry.block);
+            delete activeBlocks[idx];
           }
         } else if (evt.event === 'message_delta' && evt.data) {
           if (evt.data.delta) msg.stopReason = evt.data.delta.stop_reason || '';
@@ -1849,16 +1863,19 @@
           msg.isComplete = true;
         }
       }
-      // If stream ended without content_block_stop, push current block
-      if (currentBlock) {
-        if (currentBlock.type === 'tool_use') {
-          try {
-            currentBlock.input = currentInputJson ? JSON.parse(currentInputJson) : {};
-          } catch {
-            currentBlock.input = currentInputJson;
+      // If stream ended without content_block_stop for some blocks, push them in order
+      for (const idx of blockOrder) {
+        if (activeBlocks[idx]) {
+          const entry = activeBlocks[idx];
+          if (entry.block.type === 'tool_use') {
+            try {
+              entry.block.input = entry.inputJson ? JSON.parse(entry.inputJson) : {};
+            } catch {
+              entry.block.input = entry.inputJson;
+            }
           }
+          msg.content.push(entry.block);
         }
-        msg.content.push(currentBlock);
       }
       return msg;
     }
