@@ -1624,7 +1624,7 @@
           </table>
         `;
         const contentTabs = renderContentBlocks(parsed.content, rawBody);
-        const allTabs = [{ label: '消息概览', content: overviewHtml }, ...contentTabs];
+        const allTabs = [{ label: '消息概览', content: overviewHtml }, ...(Array.isArray(contentTabs) ? contentTabs : [{ label: '内容', content: contentTabs }])];
         allTabs.push(resHeadersTab);
         allTabs.push(resBodyTab(rawBody));
         return { model: parsed.model || '', tabs: allTabs };
@@ -1978,6 +1978,7 @@
     function parseAnthropicResponse(bodyStr) {
       try {
         const body = JSON.parse(bodyStr);
+        if (body.type === 'error') return null;
         if (!body.type && !body.role && !body.content) return null;
         return {
           id: body.id || '',
