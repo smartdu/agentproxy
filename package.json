@@ -1,6 +1,6 @@
 {
   "name": "@smartdu/agentproxy",
-  "version": "1.14.9",
+  "version": "1.15.0",
   "description": "HTTPS reverse proxy with real-time web monitoring for OpenAI/Anthropic API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -33,11 +33,14 @@
   "license": "MIT",
   "type": "commonjs",
   "dependencies": {
+    "better-sqlite3": "^12.9.0",
     "express": "^5.2.1",
     "http-proxy-middleware": "^3.0.5",
+    "sql.js": "^1.14.1",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.6",
     "@types/node": "^25.5.2",
     "@types/uuid": "^10.0.0",

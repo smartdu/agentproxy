@@ -782,7 +782,7 @@
         <button id="btn-timeline" class="timeline-btn">模型输出</button>
         <button id="btn-export" class="export-btn">导出数据</button>
         <button id="btn-import" class="import-btn">导入数据</button>
-        <input type="file" id="file-import" accept=".json">
+        <input type="file" id="file-import" accept=".json,.db">
       </div>
       <div class="msg-list" id="msg-list">
         <div class="empty-state">暂无消息，请通过代理端口发送请求</div>
@@ -992,30 +992,144 @@
     elBtnExport.addEventListener('click', exportMessages);
 
     // --- Import ---
+    let sqlJsLoaded = false;
+    let sqlJsModule = null;
+
+    async function loadSqlJs() {
+      if (sqlJsLoaded) return sqlJsModule;
+      try {
+        // sql-wasm-browser.js is served from public/ via express.static
+        const script = document.createElement('script');
+        script.src = '/sql-wasm-browser.js';
+        await new Promise((resolve, reject) => {
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+        sqlJsModule = await initSqlJs({ locateFile: file => '/' + file });
+        sqlJsLoaded = true;
+        return sqlJsModule;
+      } catch (err) {
+        console.error('Failed to load sql.js:', err);
+        throw new Error('SQLite 解析引擎加载失败');
+      }
+    }
+
+    async function importSQLite(arrayBuffer) {
+      const SQL = await loadSqlJs();
+      const db = new SQL.Database(new Uint8Array(arrayBuffer));
+
+      try {
+        // Check if messages table exists
+        const tableCheck = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='messages'");
+        if (tableCheck.length === 0) {
+          throw new Error('SQLite 数据库中没有 messages 表');
+        }
+
+        // Query messages
+        const msgResult = db.exec('SELECT * FROM messages ORDER BY seq');
+        if (msgResult.length === 0 || msgResult[0].values.length === 0) {
+          throw new Error('SQLite 数据库中没有消息数据');
+        }
+
+        const columns = msgResult[0].columns;
+        const rows = msgResult[0].values;
+
+        // Query SSE chunks
+        const chunkMap = {};
+        try {
+          const chunkResult = db.exec('SELECT message_id, timestamp, data, seq FROM sse_chunks ORDER BY message_id, seq');
+          if (chunkResult.length > 0) {
+            const chunkCols = chunkResult[0].columns;
+            const chunkRows = chunkResult[0].values;
+            for (const row of chunkRows) {
+              const msgId = row[chunkCols.indexOf('message_id')];
+              if (!chunkMap[msgId]) chunkMap[msgId] = [];
+              chunkMap[msgId].push({
+                timestamp: row[chunkCols.indexOf('timestamp')],
+                data: row[chunkCols.indexOf('data')]
+              });
+            }
+          }
+        } catch { /* sse_chunks table may not exist */ }
+
+        // Convert DB rows to ProxyMessage objects
+        const importedMessages = rows.map(row => {
+          const get = (col) => { const idx = columns.indexOf(col); return idx >= 0 ? row[idx] : undefined; };
+          const id = get('id');
+          return {
+            id,
+            seq: get('seq'),
+            timestamp: get('timestamp'),
+            updatedAt: get('updated_at'),
+            method: get('method') || '',
+            url: get('url') || '',
+            path: get('path') || '',
+            requestHeaders: JSON.parse(get('request_headers') || '{}'),
+            requestBody: get('request_body') || '',
+            responseStatus: get('response_status') || 0,
+            responseHeaders: JSON.parse(get('response_headers') || '{}'),
+            responseBody: get('response_body') || '',
+            isSSE: get('is_sse') === 1,
+            sseChunks: chunkMap[id] || [],
+            duration: get('duration') || 0,
+            proxyMode: get('proxy_mode') || undefined,
+          };
+        });
+
+        return importedMessages;
+      } finally {
+        db.close();
+      }
+    }
+
+    function handleImportedMessages(data) {
+      messages = data;
+      selectedId = null;
+      messageDetails = {};
+      lastTimestamp = messages.length > 0 ? Math.max(...messages.map(m => Math.max(m.timestamp, m.updatedAt || 0))) : 0;
+      switchMode('offline');
+      render();
+    }
+
     elBtnImport.addEventListener('click', () => elFileImport.click());
 
     elFileImport.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        try {
-          const data = JSON.parse(evt.target.result);
-          if (!Array.isArray(data)) {
-            alert('无效的文件格式：需要 JSON 数组');
-            return;
+
+      const ext = file.name.split('.').pop().toLowerCase();
+
+      if (ext === 'json') {
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          try {
+            const data = JSON.parse(evt.target.result);
+            if (!Array.isArray(data)) {
+              alert('无效的文件格式：需要 JSON 数组');
+              return;
+            }
+            handleImportedMessages(data);
+          } catch {
+            alert('文件解析失败：不是有效的 JSON');
           }
-          messages = data;
-          selectedId = null;
-          lastTimestamp = messages.length > 0 ? Math.max(...messages.map(m => Math.max(m.timestamp, m.updatedAt || 0))) : 0;
-          // Auto switch to offline mode
-          switchMode('offline');
-          render();
-        } catch {
-          alert('文件解析失败：不是有效的 JSON');
-        }
-      };
-      reader.readAsText(file);
+        };
+        reader.readAsText(file);
+      } else if (ext === 'db') {
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+          try {
+            const data = await importSQLite(evt.target.result);
+            handleImportedMessages(data);
+          } catch (err) {
+            alert(err.message || 'SQLite 文件解析失败');
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        alert('不支持的文件格式，请选择 .json 或 .db 文件');
+      }
+
       elFileImport.value = '';
     });
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util';
 import { createProxyServer, createWebServer, setupConnectHandler } from './server';
+import { messageStore } from './store';
 import type { ProxyConfig } from './types';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -21,11 +22,12 @@ AgentProxy v${VERSION} - API 代理监控工具
   -w, --web-port <port>     Web UI 端口（默认 8080）
   -f, --forward-proxy       启用正向代理（HTTP + CONNECT 隧道）
   -u, --upstream <url>      上游代理地址（默认 http://10.30.6.49:9090）
+  -d, --db <path>           SQLite 数据库路径（默认 data/agentproxy.db）
   -h, --help                显示帮助信息
   -v, --version             显示版本号
 
 环境变量（作为后备，命令行参数优先）:
-  TARGET_URL, PROXY_PORT, WEB_PORT, ENABLE_FORWARD_PROXY, UPSTREAM_PROXY
+  TARGET_URL, PROXY_PORT, WEB_PORT, ENABLE_FORWARD_PROXY, UPSTREAM_PROXY, DB_PATH
 
 示例:
   agentproxy                                    # 反向代理到默认目标
@@ -33,6 +35,7 @@ AgentProxy v${VERSION} - API 代理监控工具
   agentproxy -f                                 # 启用正向代理
   agentproxy -f -u http://proxy:8080            # 正向代理经上游代理转发
   agentproxy -f -t http://10.30.6.49:9090       # 同时启用反向代理和正向代理
+  agentproxy -d /path/to/proxy.db             # 指定数据库路径
 `;
 
 try {
@@ -43,6 +46,7 @@ try {
       'web-port': { type: 'string', short: 'w' },
       'forward-proxy': { type: 'boolean', short: 'f', default: false },
       upstream: { type: 'string', short: 'u' },
+      db: { type: 'string', short: 'd' },
       help: { type: 'boolean', short: 'h', default: false },
       version: { type: 'boolean', short: 'v', default: false },
     },
@@ -67,6 +71,18 @@ try {
     enableForwardProxy: values['forward-proxy'] || process.env.ENABLE_FORWARD_PROXY === 'true',
     upstreamProxy: values.upstream || process.env.UPSTREAM_PROXY || 'http://10.30.6.49:9090',
   };
+
+  // Initialize SQLite store
+  const dbPath = values.db || process.env.DB_PATH || 'data/agentproxy.db';
+  messageStore.init(dbPath);
+
+  // Graceful shutdown handler
+  function shutdown() {
+    messageStore.close();
+    process.exit(0);
+  }
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 
   const proxyApp = createProxyServer(config);
   const webApp = createWebServer(config);
