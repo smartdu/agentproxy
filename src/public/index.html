@@ -1153,12 +1153,27 @@
         if (newMsgs.length > 0) {
           // Merge: update existing messages, add new ones
           const existingMap = new Map(messages.map(m => [m.id, m]));
+          const invalidatedIds = [];
           for (const msg of newMsgs) {
+            const old = existingMap.get(msg.id);
+            // Invalidate detail cache when a message completes (duration 0 -> >0)
+            // or when updatedAt changes (content updated)
+            if (old && messageDetails[msg.id]) {
+              if ((old.duration === 0 && msg.duration > 0) || (old.updatedAt || 0) !== (msg.updatedAt || 0)) {
+                invalidatedIds.push(msg.id);
+                delete messageDetails[msg.id];
+              }
+            }
             existingMap.set(msg.id, msg);
           }
           messages = Array.from(existingMap.values());
           lastTimestamp = Math.max(...messages.map(m => Math.max(m.timestamp, m.updatedAt || 0)));
           render();
+          // Re-fetch and re-render detail if the selected message was invalidated
+          if (invalidatedIds.includes(selectedId)) {
+            const detail = await fetchMessageDetail(selectedId);
+            if (detail) renderDetail(detail);
+          }
         }
       } catch {
         // Silently fail
